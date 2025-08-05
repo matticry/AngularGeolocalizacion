@@ -1,1 +1,43 @@
-/* You can add global styles to this file, and also import other style files */
+@import '../node_modules/leaflet/dist/leaflet.css';
+
+
+/* Fix para iconos de Leaflet en Angular */
+.leaflet-marker-icon {
+  margin-left: -12px !important;
+  margin-top: -41px !important;
+}
+
+.leaflet-popup-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  max-width: 250px;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-tip {
+  background: white;
+}
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8fafc;
+}
+
+/* Remover estilos por defecto de Angular */
+app-root {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

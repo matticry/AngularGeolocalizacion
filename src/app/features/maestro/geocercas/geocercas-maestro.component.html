@@ -1,0 +1,464 @@
+<!-- geocercas-maestro.component.html -->
+<div class="maestro-geocercas-container">
+  <!-- Header Principal -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>🗂️ Maestro - Geocercas</h1>
+      <p>Gestiona y crea geocercas maestras del sistema</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-number">{{ geocercasMaestras.length }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ geocercasActivas }}</span>
+        <span class="stat-label">Activas</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ geocercasInactivas }}</span>
+        <span class="stat-label">Inactivas</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <!-- Panel Izquierdo - Lista y Formulario -->
+    <div class="left-panel">
+      <!-- Controles Principales -->
+      <div class="controls-section">
+        <h3>🎮 Controles</h3>
+        <div class="control-buttons">
+          <button class="control-btn primary"
+                  (click)="toggleModoCreacion()"
+                  [class.active]="modoCreacion">
+            <span class="btn-icon">{{ modoCreacion ? '🛑' : '➕' }}</span>
+            {{ modoCreacion ? 'Cancelar Creación' : 'Crear Geocerca' }}
+          </button>
+
+          <button class="control-btn secondary" (click)="guardarDatos()">
+            <span class="btn-icon">💾</span>
+            Guardar Cambios
+          </button>
+
+          <button class="control-btn secondary" (click)="exportarDatos()">
+            <span class="btn-icon">📤</span>
+            Exportar Datos
+          </button>
+        </div>
+
+        <div class="modo-info" *ngIf="modoCreacion">
+          <div class="info-box creation-mode">
+            <span class="info-icon">📍</span>
+            <div>
+              <strong>Modo Creación Activo</strong>
+              <p>{{ getInstruccionCreacion() }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selector de Forma (solo en modo creación) -->
+      <div class="forma-selector" *ngIf="modoCreacion">
+        <h3>🎯 Tipo de Geocerca</h3>
+        <div class="forma-buttons">
+          <button class="forma-btn"
+                  [class.active]="geocercaCreacion.forma === 'circulo'"
+                  (click)="cambiarForma('circulo')">
+            <span class="forma-icon">⭕</span>
+            <div>
+              <strong>Círculo</strong>
+              <small>Área circular con radio fijo</small>
+            </div>
+          </button>
+          <button class="forma-btn"
+                  [class.active]="geocercaCreacion.forma === 'poligono'"
+                  (click)="cambiarForma('poligono')">
+            <span class="forma-icon">🔷</span>
+            <div>
+              <strong>Polígono</strong>
+              <small>Área personalizada con puntos</small>
+            </div>
+          </button>
+        </div>
+
+        <!-- Información de progreso -->
+        <div class="progreso-creacion" *ngIf="geocercaCreacion.puntos.length > 0">
+          <h4>📊 Progreso</h4>
+          <div class="progreso-info">
+            <div class="info-item">
+              <span class="label">Puntos agregados:</span>
+              <span class="value">{{ geocercaCreacion.puntos.length }}</span>
+            </div>
+            <div class="info-item" *ngIf="geocercaCreacion.forma === 'circulo'">
+              <span class="label">Radio:</span>
+              <span class="value">
+                <input type="range"
+                       [(ngModel)]="geocercaCreacion.radio"
+                       (input)="actualizarCirculoTemporal()"
+                       min="50"
+                       max="2000"
+                       step="50"
+                       class="radio-slider">
+                {{ geocercaCreacion.radio }}m
+              </span>
+            </div>
+            <div class="info-item" *ngIf="geocercaCreacion.forma === 'poligono'">
+              <span class="label">Estado:</span>
+              <span class="value">{{ geocercaCreacion.puntos.length >= 3 ? '✅ Listo para guardar' : '⏳ Mín. 3 puntos' }}</span>
+            </div>
+          </div>
+
+          <!-- Lista de puntos -->
+          <div class="puntos-lista" *ngIf="geocercaCreacion.puntos.length > 0">
+            <h5>📍 Puntos</h5>
+            <div class="puntos-items">
+              <div class="punto-item" *ngFor="let punto of geocercaCreacion.puntos; let i = index">
+                <span class="punto-numero">{{ i + 1 }}</span>
+                <span class="punto-coords">{{ punto.lat.toFixed(6) }}, {{ punto.lng.toFixed(6) }}</span>
+                <button class="punto-remove" (click)="removerPunto(i)">🗑️</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Acciones de creación -->
+          <div class="creacion-actions">
+            <button class="action-btn secondary" (click)="limpiarPuntos()">
+              🧹 Limpiar
+            </button>
+            <button class="action-btn primary"
+                    (click)="confirmarCreacion()"
+                    [disabled]="!puedeCrearGeocerca()">
+              ✅ Crear Aquí
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario de Creación/Edición -->
+      <div class="form-section" *ngIf="mostrarFormulario">
+        <h3>{{ geocercaEnEdicion ? '✏️ Editar Geocerca' : '➕ Nueva Geocerca' }}</h3>
+        <form class="geocerca-form" (ngSubmit)="guardarGeocerca()">
+
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input type="text"
+                   [(ngModel)]="formularioGeocerca.nombre"
+                   name="nombre"
+                   placeholder="Ej: Centro Comercial Norte"
+                   required>
+          </div>
+
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea [(ngModel)]="formularioGeocerca.descripcion"
+                      name="descripcion"
+                      placeholder="Descripción de la geocerca..."
+                      rows="3"></textarea>
+          </div>
+
+          <!-- Mostrar información de forma -->
+          <div class="form-group" *ngIf="formularioGeocerca.forma">
+            <label>Forma</label>
+            <div class="forma-display">
+              <span class="forma-icon">{{ formularioGeocerca.forma === 'circulo' ? '⭕' : '🔷' }}</span>
+              <span class="forma-text">{{ formularioGeocerca.forma === 'circulo' ? 'Círculo' : 'Polígono' }}</span>
+              <small *ngIf="formularioGeocerca.forma === 'circulo'">Radio: {{ formularioGeocerca.radio }}m</small>
+              <small *ngIf="formularioGeocerca.forma === 'poligono'">Puntos: {{ formularioGeocerca.puntos?.length }}</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Latitud *</label>
+              <input type="number"
+                     [(ngModel)]="formularioGeocerca.latitud"
+                     name="latitud"
+                     step="0.000001"
+                     required>
+            </div>
+            <div class="form-group">
+              <label>Longitud *</label>
+              <input type="number"
+                     [(ngModel)]="formularioGeocerca.longitud"
+                     name="longitud"
+                     step="0.000001"
+                     required>
+            </div>
+          </div>
+
+          <!-- Solo mostrar radio si es círculo -->
+          <div class="form-row" *ngIf="!formularioGeocerca.forma || formularioGeocerca.forma === 'circulo'">
+            <div class="form-group">
+              <label>Radio (metros) *</label>
+              <input type="number"
+                     [(ngModel)]="formularioGeocerca.radio"
+                     name="radio"
+                     min="50"
+                     max="5000"
+                     required>
+            </div>
+            <div class="form-group">
+              <label>Color</label>
+              <input type="color"
+                     [(ngModel)]="formularioGeocerca.color"
+                     name="color">
+            </div>
+          </div>
+
+          <!-- Solo mostrar color si es polígono -->
+          <div class="form-group" *ngIf="formularioGeocerca.forma === 'poligono'">
+            <label>Color</label>
+            <input type="color"
+                   [(ngModel)]="formularioGeocerca.color"
+                   name="color">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo *</label>
+              <select [(ngModel)]="formularioGeocerca.tipo" name="tipo" required>
+                <option value="comercial">🏪 Comercial</option>
+                <option value="residencial">🏠 Residencial</option>
+                <option value="industrial">🏭 Industrial</option>
+                <option value="publica">🏛️ Pública</option>
+                <option value="especial">⭐ Especial</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Zona</label>
+              <select [(ngModel)]="formularioGeocerca.zona" name="zona">
+                <option value="centro">Centro</option>
+                <option value="norte">Norte</option>
+                <option value="sur">Sur</option>
+                <option value="este">Este</option>
+                <option value="oeste">Oeste</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Prioridad</label>
+              <select [(ngModel)]="formularioGeocerca.prioridad" name="prioridad">
+                <option value="alta">🔴 Alta</option>
+                <option value="media">🟡 Media</option>
+                <option value="baja">🟢 Baja</option>
+              </select>
+            </div>
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox"
+                       [(ngModel)]="formularioGeocerca.activa"
+                       name="activa">
+                <span>Geocerca Activa</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox"
+                       [(ngModel)]="formularioGeocerca.alertas"
+                       name="alertas">
+                <span>Alertas Habilitadas</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn primary">
+              <span class="btn-icon">💾</span>
+              {{ geocercaEnEdicion ? 'Actualizar' : 'Crear' }} Geocerca
+            </button>
+            <button type="button" class="btn secondary" (click)="cancelarFormulario()">
+              <span class="btn-icon">❌</span>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lista de Geocercas -->
+      <div class="list-section">
+        <div class="list-header">
+          <h3>📋 Geocercas Maestras</h3>
+          <div class="list-filters">
+            <select [(ngModel)]="filtroTipo" (change)="aplicarFiltros()" class="filter-select">
+              <option value="">Todos los tipos</option>
+              <option value="comercial">Comercial</option>
+              <option value="residencial">Residencial</option>
+              <option value="industrial">Industrial</option>
+              <option value="publica">Pública</option>
+              <option value="especial">Especial</option>
+            </select>
+            <select [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" class="filter-select">
+              <option value="">Todos</option>
+              <option value="activa">Activas</option>
+              <option value="inactiva">Inactivas</option>
+            </select>
+            <select [(ngModel)]="filtroForma" (change)="aplicarFiltros()" class="filter-select">
+              <option value="">Todas las formas</option>
+              <option value="circulo">Círculos</option>
+              <option value="poligono">Polígonos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="geocercas-list">
+          <div class="geocerca-card"
+               *ngFor="let geocerca of geocercasFiltradas"
+               [class.active]="geocerca.activa"
+               [class.selected]="geocercaSeleccionada?.id === geocerca.id">
+
+            <div class="card-header">
+              <div class="card-title">
+                <span class="tipo-icon">{{ getTipoIcon(geocerca.tipo) }}</span>
+                <span class="forma-icon">{{ geocerca.forma === 'circulo' ? '⭕' : '🔷' }}</span>
+                <h4>{{ geocerca.nombre }}</h4>
+              </div>
+              <div class="card-status">
+                <span class="status-badge" [ngClass]="'status-' + geocerca.prioridad">
+                  {{ geocerca.prioridad.toUpperCase() }}
+                </span>
+                <span class="active-indicator" [class.active]="geocerca.activa">
+                  {{ geocerca.activa ? '🟢' : '🔴' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <p class="descripcion">{{ geocerca.descripcion || 'Sin descripción' }}</p>
+              <div class="card-details">
+                <div class="detail-item">
+                  <span class="detail-label">📍 Coordenadas:</span>
+                  <span class="detail-value">{{ geocerca.latitud.toFixed(6) }}, {{ geocerca.longitud.toFixed(6) }}</span>
+                </div>
+                <div class="detail-item" *ngIf="geocerca.forma === 'circulo'">
+                  <span class="detail-label">📏 Radio:</span>
+                  <span class="detail-value">{{ geocerca.radio }}m</span>
+                </div>
+                <div class="detail-item" *ngIf="geocerca.forma === 'poligono'">
+                  <span class="detail-label">🔷 Puntos:</span>
+                  <span class="detail-value">{{ geocerca.puntos?.length }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">🏷️ Zona:</span>
+                  <span class="detail-value">{{ geocerca.zona | titlecase }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">📅 Creada:</span>
+                  <span class="detail-value">{{ geocerca.fechaCreacion | date:'short' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <button class="action-btn view"
+                      (click)="centrarEnGeocerca(geocerca)"
+                      title="Ver en mapa">
+                👁️
+              </button>
+              <button class="action-btn edit"
+                      (click)="editarGeocerca(geocerca)"
+                      title="Editar">
+                ✏️
+              </button>
+              <button class="action-btn toggle"
+                      (click)="toggleEstadoGeocerca(geocerca)"
+                      [title]="geocerca.activa ? 'Desactivar' : 'Activar'">
+                {{ geocerca.activa ? '🔴' : '🟢' }}
+              </button>
+              <button class="action-btn delete"
+                      (click)="eliminarGeocerca(geocerca)"
+                      title="Eliminar">
+                🗑️
+              </button>
+            </div>
+          </div>
+
+          <!-- Estado vacío -->
+          <div class="empty-state" *ngIf="geocercasFiltradas.length === 0">
+            <div class="empty-icon">🗂️</div>
+            <h3>No hay geocercas</h3>
+            <p>{{ geocercasMaestras.length === 0 ? 'Crea tu primera geocerca haciendo click en "Crear Geocerca"' : 'No hay geocercas que coincidan con los filtros' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Derecho - Mapa -->
+    <div class="right-panel">
+      <div class="map-container">
+        <!-- Controles del Mapa -->
+        <div class="map-header">
+          <div class="map-title">
+            <h3>🗺️ Mapa Maestro</h3>
+            <span class="map-status">{{ mapStatus }}</span>
+          </div>
+          <div class="map-controls">
+            <button class="map-btn" (click)="centrarMapa()" title="Centrar mapa">
+              🎯
+            </button>
+            <button class="map-btn" (click)="ajustarVista()" title="Ver todas">
+              🌍
+            </button>
+            <button class="map-btn" (click)="limpiarSeleccion()" title="Limpiar selección">
+              🧹
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor del Mapa -->
+        <div #mapContainer id="maestro-map" class="leaflet-map"></div>
+
+        <!-- Información del Punto Seleccionado -->
+        <div class="point-info" *ngIf="puntoSeleccionado && !modoCreacion">
+          <h4>📍 Punto Seleccionado</h4>
+          <p><strong>Coordenadas:</strong> {{ puntoSeleccionado.lat.toFixed(6) }}, {{ puntoSeleccionado.lng.toFixed(6) }}</p>
+          <button class="btn primary" (click)="crearGeocercaEnPunto()">
+            ➕ Crear Geocerca Aquí
+          </button>
+        </div>
+
+        <!-- Leyenda -->
+        <div class="map-legend">
+          <h4>Leyenda</h4>
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-marker comercial"></div>
+              <span>Comercial</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker residencial"></div>
+              <span>Residencial</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker industrial"></div>
+              <span>Industrial</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker publica"></div>
+              <span>Pública</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker especial"></div>
+              <span>Especial</span>
+            </div>
+            <div class="legend-separator"></div>
+            <div class="legend-item">
+              <span>⭕</span>
+              <span>Círculo</span>
+            </div>
+            <div class="legend-item">
+              <span>🔷</span>
+              <span>Polígono</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading overlay -->
+        <div class="map-loading" *ngIf="mapLoading">
+          <div class="loading-spinner"></div>
+          <p>{{ mapStatus }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

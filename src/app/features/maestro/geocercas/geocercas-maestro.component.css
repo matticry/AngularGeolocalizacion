@@ -1,0 +1,943 @@
+/* geocercas-maestro.component.css */
+
+.maestro-geocercas-container {
+  height: 100vh;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+.page-header {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.header-content h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.header-content p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1rem;
+}
+
+.header-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* LAYOUT PRINCIPAL */
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.left-panel {
+  width: 450px;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CONTROLES */
+.controls-section {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.controls-section h3 {
+  margin: 0 0 1rem 0;
+  color: #374151;
+  font-size: 1.1rem;
+}
+
+.control-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.control-btn.primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.control-btn.primary:hover {
+  background: #2563eb;
+}
+
+.control-btn.primary.active {
+  background: #ef4444;
+}
+
+.control-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.control-btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+.modo-info {
+  margin-top: 1rem;
+}
+
+.info-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.creation-mode {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.info-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* SELECTOR DE FORMA */
+.forma-selector {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f0f9ff;
+}
+
+.forma-selector h3 {
+  margin: 0 0 1rem 0;
+  color: #374151;
+  font-size: 1.1rem;
+}
+
+.forma-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.forma-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.forma-btn:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.forma-btn.active {
+  border-color: #3b82f6;
+  background: #dbeafe;
+}
+
+.forma-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.forma-btn strong {
+  display: block;
+  color: #374151;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.forma-btn small {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+/* PROGRESO DE CREACIÓN */
+.progreso-creacion {
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.progreso-creacion h4 {
+  margin: 0 0 0.75rem 0;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.progreso-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.info-item .label {
+  color: #6b7280;
+}
+
+.info-item .value {
+  color: #374151;
+  font-weight: 500;
+}
+
+.radio-slider {
+  width: 80px;
+  margin-right: 0.5rem;
+}
+
+.puntos-lista {
+  margin-bottom: 1rem;
+}
+
+.puntos-lista h5 {
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+  font-size: 0.8rem;
+}
+
+.puntos-items {
+  max-height: 120px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.punto-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.punto-numero {
+  background: #3b82f6;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.punto-coords {
+  flex: 1;
+  font-family: monospace;
+  color: #374151;
+}
+
+.punto-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem;
+  font-size: 0.8rem;
+}
+
+.punto-remove:hover {
+  background: #fee2e2;
+  border-radius: 4px;
+}
+
+.creacion-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.action-btn.primary {
+  background: #10b981;
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: #059669;
+}
+
+.action-btn.primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.action-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.action-btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+/* FORMULARIO */
+.form-section {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section h3 {
+  margin: 0 0 1.5rem 0;
+  color: #374151;
+  font-size: 1.1rem;
+}
+
+.geocerca-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.forma-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+.forma-display .forma-icon {
+  font-size: 1.2rem;
+}
+
+.forma-display .forma-text {
+  font-weight: 500;
+  color: #374151;
+}
+
+.forma-display small {
+  color: #6b7280;
+  margin-left: auto;
+}
+
+.checkbox-group {
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.btn.primary {
+  background: #10b981;
+  color: white;
+}
+
+.btn.primary:hover {
+  background: #059669;
+}
+
+.btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+/* LISTA */
+.list-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.list-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.list-header h3 {
+  margin: 0 0 1rem 0;
+  color: #374151;
+  font-size: 1.1rem;
+}
+
+.list-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: white;
+  flex: 1;
+  min-width: 120px;
+}
+
+.geocercas-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.geocerca-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.geocerca-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+}
+
+.geocerca-card.selected {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.geocerca-card.active {
+  border-left: 4px solid #10b981;
+}
+
+.card-header {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-title h4 {
+  margin: 0;
+  color: #374151;
+  font-size: 1rem;
+}
+
+.tipo-icon {
+  font-size: 1.2rem;
+}
+
+.forma-icon {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.card-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.status-alta {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-media {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-baja {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.card-content {
+  padding: 1rem;
+}
+
+.descripcion {
+  margin: 0 0 1rem 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.detail-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: #374151;
+  font-family: monospace;
+}
+
+.card-actions {
+  padding: 1rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.card-actions .action-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.card-actions .action-btn.view:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.card-actions .action-btn.edit:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.card-actions .action-btn.toggle:hover {
+  background: #f0fdf4;
+  border-color: #10b981;
+}
+
+.card-actions .action-btn.delete:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+}
+
+/* MAPA */
+.map-container {
+  flex: 1;
+  position: relative;
+  background: #f3f4f6;
+}
+
+.map-header {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-title {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.map-title h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  color: #374151;
+}
+
+.map-status {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.map-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.map-btn {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.map-btn:hover {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+.point-info {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 250px;
+  z-index: 1000;
+}
+
+.point-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.point-info p {
+  margin: 0 0 1rem 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.map-legend h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.legend-marker {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.legend-marker.comercial { background: #3b82f6; }
+.legend-marker.residencial { background: #10b981; }
+.legend-marker.industrial { background: #f59e0b; }
+.legend-marker.publica { background: #8b5cf6; }
+.legend-marker.especial { background: #ef4444; }
+
+.legend-separator {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0.25rem 0;
+}
+
+.map-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .left-panel {
+    width: 100%;
+    height: 60vh;
+  }
+
+  .right-panel {
+    height: 40vh;
+  }
+
+  .header-stats {
+    gap: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .forma-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .checkbox-group {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .map-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .point-info {
+    position: relative;
+    margin: 1rem;
+    bottom: auto;
+    right: auto;
+  }
+
+  .list-filters {
+    flex-direction: column;
+  }
+
+  .filter-select {
+    min-width: auto;
+  }
+}

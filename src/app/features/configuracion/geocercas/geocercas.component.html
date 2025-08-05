@@ -1,0 +1,183 @@
+<!-- geocercas.component.html -->
+<div class="vendedores-geocercas-container">
+  <div class="content-layout">
+    <!-- Panel Izquierdo -->
+    <div class="left-panel">
+      <!-- Información del Vendedor -->
+      <div class="vendedor-section">
+        <h3 class="section-title">Vendedor</h3>
+        <div class="vendedor-card">
+          <div class="vendedor-info">
+            <div class="info-row">
+              <span class="label">Nombres:</span>
+              <span class="value">{{ vendedorSeleccionado.nombre }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Apellidos:</span>
+              <span class="value">{{ vendedorSeleccionado.apellidos }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Dirección:</span>
+              <span class="value">{{ vendedorSeleccionado.direccion }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Distrito:</span>
+              <span class="value">{{ vendedorSeleccionado.distrito }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Teléfono:</span>
+              <span class="value">{{ vendedorSeleccionado.telefono }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Código:</span>
+              <span class="value">{{ vendedorSeleccionado.codigo }}</span>
+            </div>
+          </div>
+          <div class="vendedor-actions">
+            <button class="action-btn center-btn" (click)="centrarEnVendedor()">
+              📍 Centrar en Mapa
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Geocercas -->
+      <div class="geocercas-section">
+        <h3 class="section-title">
+          Geocercas ({{ geocercasFiltradas.length }})
+        </h3>
+        <div class="search-container">
+          <div class="search-box">
+            <input type="text"
+                   placeholder="Buscar geocerca..."
+                   [(ngModel)]="searchTerm"
+                   (input)="filtrarGeocercas()"
+                   class="search-input">
+            <button class="search-btn">🔍</button>
+          </div>
+          <button class="add-btn" (click)="agregarGeocerca()">
+            ➕ Agregar Geocerca
+          </button>
+        </div>
+
+        <div class="geocercas-list">
+          <div class="geocerca-item"
+               *ngFor="let geocerca of geocercasFiltradas"
+               [class.active]="geocerca.activa">
+            <div class="geocerca-info" (click)="centrarEnGeocerca(geocerca)">
+              <div class="geocerca-header">
+                <div class="geocerca-name">{{ geocerca.nombre }}</div>
+                <div class="geocerca-status"
+                     [class.status-active]="geocerca.activa"
+                     [class.status-inactive]="!geocerca.activa">
+                  {{ geocerca.activa ? 'Activa' : 'Inactiva' }}
+                </div>
+              </div>
+              <div class="geocerca-details">
+                <div class="detail-line">📍 {{ geocerca.direccion }}</div>
+                <div class="detail-line">🏙️ {{ geocerca.distrito }}</div>
+                <div class="detail-line">📏 Radio: {{ geocerca.radio }}m</div>
+                <div class="detail-line">📊 {{ geocerca.latitud.toFixed(6) }}, {{ geocerca.longitud.toFixed(6) }}</div>
+              </div>
+            </div>
+            <div class="geocerca-actions">
+              <button class="toggle-btn"
+                      (click)="toggleGeocerca(geocerca)"
+                      [class.active]="geocerca.activa">
+                {{ geocerca.activa ? '👁️' : '👁️‍🗨️' }}
+              </button>
+              <button class="edit-btn" (click)="editarGeocerca(geocerca)">
+                ✏️
+              </button>
+              <button class="remove-btn" (click)="quitarGeocerca(geocerca.id)">
+                🗑️
+              </button>
+            </div>
+          </div>
+
+          <!-- Estado vacío -->
+          <div class="empty-state" *ngIf="geocercasFiltradas.length === 0">
+            <div class="empty-icon">🔍</div>
+            <p>No se encontraron geocercas</p>
+            <small>Prueba con otro término de búsqueda</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Control -->
+      <div class="control-panel">
+        <h4>Controles del Mapa</h4>
+        <div class="control-buttons">
+          <button class="control-btn" (click)="mostrarTodas()">
+            🌍 Ver Todas
+          </button>
+          <button class="control-btn" (click)="obtenerUbicacion()">
+            📍 Mi Ubicación
+          </button>
+          <button class="control-btn" (click)="limpiarMapa()">
+            🧹 Limpiar
+          </button>
+          <button class="control-btn" (click)="forzarInicializacion()">
+            🔄 Inicializar Mapa
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Derecho - Mapa Real -->
+    <div class="right-panel">
+      <div class="map-container">
+        <!-- Controles del Mapa -->
+        <div class="map-controls">
+          <div class="map-title">
+            <h3>🗺️ Mapa Interactivo</h3>
+            <small>{{ mapStatus }}</small>
+          </div>
+          <div class="map-actions">
+            <button class="map-action-btn"
+                    (click)="toggleModoEdicion()"
+                    [class.active]="modoEdicion">
+              {{ modoEdicion ? '🛑 Cancelar' : '➕ Agregar Punto' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor del Mapa -->
+        <div #mapContainer id="map-container" class="leaflet-map"></div>
+
+        <!-- Leyenda del Mapa -->
+        <div class="map-legend">
+          <h4>Leyenda</h4>
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-marker vendedor"></div>
+              <span>Vendedor</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker geocerca"></div>
+              <span>Geocerca</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker centro"></div>
+              <span>Centro Operaciones</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-circle active"></div>
+              <span>Área Activa</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-circle inactive"></div>
+              <span>Área Inactiva</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading overlay -->
+        <div class="map-loading" *ngIf="mapLoading">
+          <div class="loading-spinner"></div>
+          <p>{{ mapStatus }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
