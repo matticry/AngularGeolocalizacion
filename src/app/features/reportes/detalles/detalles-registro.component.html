@@ -11,8 +11,9 @@
 
   <!-- Filtros -->
   <div class="filtros-container">
+    <!-- Primera fila: Vendedor, Desde, Hasta -->
     <div class="filtros-row">
-      <div class="field">
+      <div class="field field-vendedor">
         <label>Vendedor</label>
         <input type="text" [(ngModel)]="filtroVendedor" placeholder="Buscar por vendedor..." (input)="aplicarFiltros()" />
       </div>
@@ -26,8 +27,11 @@
         <label>Hasta</label>
         <input type="date" [(ngModel)]="fechaHasta" (change)="aplicarFiltros()" />
       </div>
+    </div>
 
-      <div class="field">
+    <!-- Segunda fila: Cliente, Toggles, Acciones -->
+    <div class="filtros-row">
+      <div class="field field-cliente">
         <label>Cliente</label>
         <input type="text" [(ngModel)]="filtroCliente" placeholder="Cliente..." (input)="aplicarFiltros()" />
       </div>
@@ -44,14 +48,8 @@
     </div>
   </div>
 
-  <!-- Mapa -->
+  <!-- Mapa (sin el panel lateral) -->
   <div class="map-area">
-    <div class="map-left-info">
-      <div class="stat">
-        <strong>{{ registrosFiltrados.length }}</strong>
-        <small>Registros</small>
-      </div>
-    </div>
     <div id="detalles-map" #mapContainer class="map-container"></div>
   </div>
 
