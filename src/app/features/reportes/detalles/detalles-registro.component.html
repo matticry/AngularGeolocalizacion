@@ -1,0 +1,99 @@
+<!-- src/app/features/reportes/detalles/detalles-registro.component.html -->
+<div class="detalle-page">
+
+  <!-- Header -->
+  <div class="detalle-header">
+    <h2>Detalle Registro</h2>
+    <div class="header-actions">
+      <button class="btn export" (click)="exportarExcelCSV()">⬇️ Exportar Excel</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros-container">
+    <div class="filtros-row">
+      <div class="field">
+        <label>Vendedor</label>
+        <input type="text" [(ngModel)]="filtroVendedor" placeholder="Buscar por vendedor..." (input)="aplicarFiltros()" />
+      </div>
+
+      <div class="field">
+        <label>Desde</label>
+        <input type="date" [(ngModel)]="fechaDesde" (change)="aplicarFiltros()" />
+      </div>
+
+      <div class="field">
+        <label>Hasta</label>
+        <input type="date" [(ngModel)]="fechaHasta" (change)="aplicarFiltros()" />
+      </div>
+
+      <div class="field">
+        <label>Cliente</label>
+        <input type="text" [(ngModel)]="filtroCliente" placeholder="Cliente..." (input)="aplicarFiltros()" />
+      </div>
+
+      <div class="toggles">
+        <label><input type="checkbox" [(ngModel)]="mostrarPedidos" (change)="renderRegistrosEnMapa()" /> Pedidos</label>
+        <label><input type="checkbox" [(ngModel)]="mostrarCobros" (change)="renderRegistrosEnMapa()" /> Cobros</label>
+      </div>
+
+      <div class="actions">
+        <button class="btn" (click)="aplicarFiltros()">🔎 Filtrar</button>
+        <button class="btn ghost" (click)="limpiarFiltros()">♻ Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mapa -->
+  <div class="map-area">
+    <div class="map-left-info">
+      <div class="stat">
+        <strong>{{ registrosFiltrados.length }}</strong>
+        <small>Registros</small>
+      </div>
+    </div>
+    <div id="detalles-map" #mapContainer class="map-container"></div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="tabla-area">
+    <table class="registros-table">
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Fecha</th>
+        <th>Hora Ingreso</th>
+        <th>Hora Salida</th>
+        <th>Vendedor</th>
+        <th>Ubicación</th>
+        <th>Nro Pedido</th>
+        <th>Nro Cobro</th>
+        <th>Cliente</th>
+        <th>Pedido</th>
+        <th>Cobro</th>
+        <th>Monto</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let r of registrosFiltrados" (click)="centrarEnRegistro(r)" class="row-registro">
+        <td>{{ r.id }}</td>
+        <td>{{ r.fecha }}</td>
+        <td>{{ r.horaIngreso }}</td>
+        <td>{{ r.horaSalida || '-' }}</td>
+        <td>{{ r.vendedor }}</td>
+        <td class="ubicacion-col">{{ r.ubicacion }}</td>
+        <td>{{ r.nroPedido || '-' }}</td>
+        <td>{{ r.nroCobro || '-' }}</td>
+        <td>{{ r.cliente || '-' }}</td>
+        <td class="center-col">{{ r.pedido ? 'X' : '' }}</td>
+        <td class="center-col">{{ r.cobro ? 'X' : '' }}</td>
+        <td class="right-col">{{ r.monto != null ? (r.monto | number:'1.0-2') : '-' }}</td>
+      </tr>
+
+      <tr *ngIf="registrosFiltrados.length === 0">
+        <td colspan="12" class="empty">No hay registros que coincidan</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

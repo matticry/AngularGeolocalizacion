@@ -66,7 +66,16 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
   private map: L.Map | null = null;
   private markers: Map<string, L.Marker> = new Map();
   private shapes: Map<string, L.Circle | L.Polygon> = new Map();
+
+  // marcadores temporales "numerados" que usabas para mostrar número (opcional)
   private marcadoresTemporales: L.Marker[] = [];
+
+  // marcador para vértices creados en modo creación
+  private vertexMarkersByTemp: L.Marker[] = [];
+
+  // marcadores de vértice para polígonos ya guardados (key = geocerca.id)
+  private vertexMarkersById: Map<string, L.Marker[]> = new Map();
+
   private formaTemporalActual: L.Circle | L.Polygon | null = null;
 
   // Datos (simulando persistencia)
@@ -181,14 +190,15 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
       this.mapStatus = 'Creando mapa...';
       this.cdr.detectChanges();
 
-      const mapContainer = document.getElementById('maestro-map');
+      // usar ViewChild si está disponible, si no fallback por id
+      const mapContainer = this.mapContainerRef?.nativeElement || document.getElementById('maestro-map');
       if (!mapContainer) {
         throw new Error('Contenedor del mapa no encontrado');
       }
 
       mapContainer.innerHTML = '';
 
-      this.map = L.map('maestro-map', {
+      this.map = L.map(mapContainer, {
         center: [-0.186879, -78.503194],
         zoom: 12,
         zoomControl: true,
@@ -201,7 +211,7 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
       }).addTo(this.map);
 
       // Eventos del mapa
-      this.map.on('click', (e) => {
+      this.map.on('click', (e: any) => {
         if (this.modoCreacion) {
           this.agregarPuntoCreacion(e.latlng.lat, e.latlng.lng);
         } else {
@@ -230,6 +240,12 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   private destroyMap(): void {
+    // limpiar marcadores de edición pendientes
+    this.vertexMarkersByTemp.forEach(m => { if (this.map) this.map.removeLayer(m); });
+    this.vertexMarkersById.forEach((markers) => markers.forEach(m => { if (this.map) this.map.removeLayer(m); }));
+    this.vertexMarkersByTemp = [];
+    this.vertexMarkersById.clear();
+
     if (this.map) {
       this.map.remove();
       this.map = null;
@@ -261,7 +277,17 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
       this.limpiarPuntos();
     }
     this.geocercaCreacion.puntos.push({ lat, lng });
-    this.agregarMarcadorTemporal(lat, lng);
+
+    // si es polígono, usamos marcadores arrastrables por vértice
+    if (this.geocercaCreacion.forma === 'poligono') {
+      // limpiar marcadores previos y crearlos de nuevo (asegura index correcto)
+      this.clearVertexMarkersForCreation();
+      this.createVertexMarkersForCreation();
+    } else {
+      // para círculo puedes mostrar un marcador numerado temporal si deseas
+      this.agregarMarcadorTemporal(lat, lng);
+    }
+
     this.actualizarFormaTemporal();
   }
 
@@ -279,6 +305,109 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
     const marker = L.marker([lat, lng], { icon }).addTo(this.map);
     this.marcadoresTemporales.push(marker);
   }
+
+  // --- NUEVAS FUNCIONES PARA EDITAR VÉRTICES ---
+
+  // crea marcadores arrastrables para los puntos en modo creación (polígono)
+  private createVertexMarkersForCreation(): void {
+    if (!this.map) return;
+
+    // limpiar primero
+    this.clearVertexMarkersForCreation();
+
+    this.geocercaCreacion.puntos.forEach((p, idx) => {
+      const marker = L.marker([p.lat, p.lng], {
+        draggable: true,
+        title: `Vértice ${idx + 1}`
+      }).addTo(this.map!);
+
+      // actualizar en tiempo real al arrastrar
+      marker.on('drag', (e: any) => {
+        const pos = e.target.getLatLng();
+        // actualizar el array de puntos
+        this.geocercaCreacion.puntos[idx] = { lat: pos.lat, lng: pos.lng };
+        // redibujar polígono temporal
+        this.actualizarPoligonoTemporal();
+      });
+
+      // en dragend nos aseguramos y reindexamos si es necesario
+      marker.on('dragend', (e: any) => {
+        const pos = e.target.getLatLng();
+        this.geocercaCreacion.puntos[idx] = { lat: pos.lat, lng: pos.lng };
+        this.actualizarPoligonoTemporal();
+      });
+
+      // opcional: doble clic para eliminar vértice
+      marker.on('dblclick', () => {
+        this.geocercaCreacion.puntos.splice(idx, 1);
+        this.clearVertexMarkersForCreation();
+        // recrear marcadores con índices correctos
+        this.createVertexMarkersForCreation();
+        this.actualizarPoligonoTemporal();
+      });
+
+      this.vertexMarkersByTemp.push(marker);
+    });
+  }
+
+  private clearVertexMarkersForCreation(): void {
+    if (!this.map) return;
+    this.vertexMarkersByTemp.forEach(m => this.map!.removeLayer(m));
+    this.vertexMarkersByTemp = [];
+  }
+
+  private startVertexEditingForId(geocercaId: string, puntos: PuntoPoligono[]): void {
+    if (!this.map) return;
+    // limpiar si existe edición previa para este id
+    this.stopVertexEditingForId(geocercaId);
+
+    const markers: L.Marker[] = [];
+
+    puntos.forEach((p, idx) => {
+      const marker = L.marker([p.lat, p.lng], { draggable: true }).addTo(this.map!);
+
+      marker.on('drag', (e: any) => {
+        const pos = e.target.getLatLng();
+        if (!this.formularioGeocerca.puntos) this.formularioGeocerca.puntos = [];
+        (this.formularioGeocerca.puntos as PuntoPoligono[])[idx] = { lat: pos.lat, lng: pos.lng };
+        const shape = this.shapes.get(geocercaId) as L.Polygon | undefined;
+        if (shape) {
+          shape.setLatLngs((this.formularioGeocerca.puntos as PuntoPoligono[]).map(pt => [pt.lat, pt.lng]));
+        }
+      });
+
+      marker.on('dragend', (e: any) => {
+        const pos = e.target.getLatLng();
+        (this.formularioGeocerca.puntos as PuntoPoligono[])[idx] = { lat: pos.lat, lng: pos.lng };
+      });
+
+      // opcional: dblclick para eliminar vértice
+      marker.on('dblclick', () => {
+        (this.formularioGeocerca.puntos as PuntoPoligono[]).splice(idx, 1);
+        // actualizar shape
+        const shape = this.shapes.get(geocercaId) as L.Polygon | undefined;
+        if (shape) {
+          shape.setLatLngs((this.formularioGeocerca.puntos as PuntoPoligono[]).map(pt => [pt.lat, pt.lng]));
+        }
+        // recrear marcadores para mantener índices consistentes
+        this.stopVertexEditingForId(geocercaId);
+        this.startVertexEditingForId(geocercaId, this.formularioGeocerca.puntos as PuntoPoligono[]);
+      });
+
+      markers.push(marker);
+    });
+
+    this.vertexMarkersById.set(geocercaId, markers);
+  }
+
+  private stopVertexEditingForId(id: string): void {
+    const markers = this.vertexMarkersById.get(id);
+    if (!markers) return;
+    markers.forEach(m => { if (this.map) this.map.removeLayer(m); });
+    this.vertexMarkersById.delete(id);
+  }
+
+  // --- FIN NUEVAS FUNCIONES ---
 
   private actualizarFormaTemporal(): void {
     if (!this.map || this.geocercaCreacion.puntos.length === 0) return;
@@ -317,6 +446,7 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
 
     if (this.formaTemporalActual) {
       this.map.removeLayer(this.formaTemporalActual);
+      this.formaTemporalActual = null;
     }
 
     const latLngs: [number, number][] = this.geocercaCreacion.puntos.map(p => [p.lat, p.lng]);
@@ -339,16 +469,20 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
   removerPunto(index: number): void {
     this.geocercaCreacion.puntos.splice(index, 1);
     this.limpiarMarcadoresTemporales();
+    // limpiar marcadores de vértice y recrearlos
+    this.clearVertexMarkersForCreation();
     this.geocercaCreacion.puntos.forEach(punto => {
+      // si usas marcadores numerados también recrea
       this.agregarMarcadorTemporal(punto.lat, punto.lng);
     });
-
+    this.createVertexMarkersForCreation();
     this.actualizarFormaTemporal();
   }
 
   limpiarPuntos(): void {
     this.geocercaCreacion.puntos = [];
     this.limpiarMarcadoresTemporales();
+    this.clearVertexMarkersForCreation();
     if (this.formaTemporalActual && this.map) {
       this.map.removeLayer(this.formaTemporalActual);
       this.formaTemporalActual = null;
@@ -362,6 +496,9 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
       this.map!.removeLayer(marker);
     });
     this.marcadoresTemporales = [];
+
+    // además limpiamos vertexMarkers temporales (modo creación)
+    this.clearVertexMarkersForCreation();
   }
 
   private limpiarCreacion(): void {
@@ -472,7 +609,6 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
   private agregarGeocercaAlMapa(geocerca: GeocercaMaestra): void {
     if (!this.map) return;
 
-    // Crear marcador
     const formaIcon = geocerca.forma === 'circulo' ? '⭕' : '🔷';
     const icon = L.divIcon({
       className: 'custom-geocerca-marker',
@@ -506,7 +642,6 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
       </div>
     `);
 
-    // Crear forma geométrica
     if (geocerca.forma === 'circulo' && geocerca.radio) {
       const circle = L.circle([geocerca.latitud, geocerca.longitud], {
         radius: geocerca.radio,
@@ -541,6 +676,9 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   private removerGeocercaDelMapa(id: string): void {
+    // detener edición si existe
+    this.stopVertexEditingForId(id);
+
     const marker = this.markers.get(id);
     const shape = this.shapes.get(id);
 
@@ -576,6 +714,12 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
     this.mostrarFormulario = true;
     this.modoCreacion = false;
     this.limpiarCreacion();
+
+    // si es polígono, crea markers arrastrables para editar vértices
+    if (geocerca.forma === 'poligono' && geocerca.puntos && this.map) {
+      // iniciar edición de vértices para este id
+      this.startVertexEditingForId(geocerca.id, geocerca.puntos.slice());
+    }
   }
 
   guardarGeocerca(): void {
@@ -607,6 +751,9 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
         this.removerGeocercaDelMapa(this.geocercaEnEdicion.id);
         this.agregarGeocercaAlMapa(this.geocercasMaestras[index]);
       }
+      // limpiar marcadores de edición para ese id
+      if (this.geocercaEnEdicion.id) this.stopVertexEditingForId(this.geocercaEnEdicion.id);
+
     } else {
       // Crear nueva
       const nuevaGeocerca: GeocercaMaestra = {
@@ -628,7 +775,7 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
       if (this.formularioGeocerca.forma === 'circulo') {
         nuevaGeocerca.radio = this.formularioGeocerca.radio!;
       } else {
-        nuevaGeocerca.puntos = this.formularioGeocerca.puntos!;
+        nuevaGeocerca.puntos = (this.formularioGeocerca.puntos || []).slice();
       }
 
       this.geocercasMaestras.push(nuevaGeocerca);
@@ -641,6 +788,11 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   cancelarFormulario(): void {
+    // limpiar edición de vértices si había
+    if (this.geocercaEnEdicion && this.geocercaEnEdicion.id) {
+      this.stopVertexEditingForId(this.geocercaEnEdicion.id);
+    }
+
     this.mostrarFormulario = false;
     this.geocercaEnEdicion = null;
     this.formularioGeocerca = {
@@ -677,7 +829,7 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
       shape.setStyle({
         fillOpacity: geocerca.activa ? 0.2 : 0.1,
         opacity: geocerca.activa ? 1 : 0.5
-      });
+      } as any);
     }
 
     this.aplicarFiltros();
@@ -691,6 +843,9 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
     if (this.map) {
       this.map.setView([geocerca.latitud, geocerca.longitud], 16);
       this.seleccionarGeocerca(geocerca);
+      // abrir popup si existe
+      const marker = this.markers.get(geocerca.id);
+      if (marker) marker.openPopup();
     }
   }
 
@@ -718,7 +873,13 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
     if (!this.map || this.markers.size === 0) return;
 
     const group = new L.FeatureGroup(Array.from(this.markers.values()));
-    this.map.fitBounds(group.getBounds().pad(0.1));
+    const layers = group.getLayers();
+    if (layers.length === 1) {
+      const bounds = group.getBounds();
+      this.map.setView(bounds.getCenter(), 16);
+    } else {
+      this.map.fitBounds(group.getBounds().pad(0.1));
+    }
   }
 
   limpiarSeleccion(): void {

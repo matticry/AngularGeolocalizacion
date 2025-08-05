@@ -105,14 +105,6 @@ import { RouterOutlet, RouterModule } from '@angular/router';
               </div>
               <ul class="nav-sublist" *ngIf="!sidebarCollapsed && expandedGroups['reportes']">
                 <li class="nav-subitem">
-                  <a routerLink="/reportes/geolocalizacion"
-                     routerLinkActive="active"
-                     class="nav-sublink">
-                    <span class="nav-subicon">📊</span>
-                    <span class="nav-subtext">Geolocalización</span>
-                  </a>
-                </li>
-                <li class="nav-subitem">
                   <a routerLink="/reportes/vendedores"
                      routerLinkActive="active"
                      class="nav-sublink">

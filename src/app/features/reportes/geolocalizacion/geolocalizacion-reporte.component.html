@@ -1,0 +1,180 @@
+<!-- src/app/features/reportes/geolocalizacion/geolocalizacion-reporte.component.html -->
+<div class="vendedores-geoloc-container">
+  <!-- Panel Izquierdo -->
+  <div class="left-panel">
+    <!-- Header con estadísticas -->
+    <div class="header-left">
+      <h2>👥 Vendedores</h2>
+      <p class="sub">Gestión y ubicación en tiempo real</p>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="quick-stats">
+      <div class="stat-card">
+        <div class="stat-number">{{ vendedoresFiltrados.length }}</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ getVendedoresPorEstado('activo') }}</div>
+        <div class="stat-label">Activos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ getTotalVentasHoy() }}</div>
+        <div class="stat-label">Ventas</div>
+      </div>
+    </div>
+
+    <!-- Controles de filtrado -->
+    <div class="controls-section">
+      <!-- Barra de búsqueda -->
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Buscar por nombre, dirección, código..."
+          [(ngModel)]="searchTerm"
+          (input)="filtrarVendedores()"
+          aria-label="Buscar vendedores" />
+        <button class="btn" (click)="filtrarVendedores()" aria-label="Buscar">
+          🔍
+        </button>
+      </div>
+
+      <!-- Filtros por estado -->
+      <div class="filter-estados">
+        <button
+          class="filter-chip"
+          [class.active]="filtroEstado === 'todos'"
+          (click)="filtroEstado = 'todos'; filtrarVendedores()">
+          Todos
+        </button>
+        <button
+          class="filter-chip"
+          [class.active]="filtroEstado === 'activo'"
+          (click)="filtroEstado = 'activo'; filtrarVendedores()">
+          ✓ Activos
+        </button>
+        <button
+          class="filter-chip"
+          [class.active]="filtroEstado === 'ocupado'"
+          (click)="filtroEstado = 'ocupado'; filtrarVendedores()">
+          🔥 Ocupados
+        </button>
+        <button
+          class="filter-chip"
+          [class.active]="filtroEstado === 'inactivo'"
+          (click)="filtroEstado = 'inactivo'; filtrarVendedores()">
+          ⏸ Inactivos
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de vendedores -->
+    <div class="list-vendedores">
+      <div
+        *ngFor="let v of vendedoresFiltrados; trackBy: trackByVendedorId"
+        class="v-item"
+        [class.selected]="selectedVendedorId === v.id"
+        (click)="centrarEnVendedorClick(v)"
+        [attr.aria-label]="'Vendedor ' + v.nombre + ' ' + (v.apellidos || '')"
+        tabindex="0"
+        (keydown.enter)="centrarEnVendedorClick(v)"
+        (keydown.space)="centrarEnVendedorClick(v); $event.preventDefault()">
+
+        <div class="v-info">
+          <div class="v-name">
+            {{ v.nombre }}
+            <small *ngIf="v.apellidos">{{ v.apellidos }}</small>
+            <span class="v-status" [ngClass]="v.estado || 'default'">
+              {{ getEstadoIcon(v.estado || 'default') }} {{ v.estado || 'Sin estado' }}
+            </span>
+          </div>
+
+          <div class="v-meta">
+            📍 {{ v.direccion || 'Sin dirección' }} • {{ v.distrito || 'Sin distrito' }}
+            <br *ngIf="v.telefono">
+            <span *ngIf="v.telefono">📞 {{ v.telefono }}</span>
+          </div>
+
+          <div class="v-stats">
+            <div class="v-stat">
+              <span class="v-stat-value">{{ v.ventasHoy || 0 }}</span>
+              <span class="v-stat-label">Ventas</span>
+            </div>
+            <div class="v-stat">
+              <span class="v-stat-value">{{ v.clientesVisitados || 0 }}</span>
+              <span class="v-stat-label">Clientes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty" *ngIf="vendedoresFiltrados.length === 0">
+        <p>🔍 No se encontraron vendedores</p>
+        <small>Intenta con otro término de búsqueda o ajusta los filtros</small>
+      </div>
+    </div>
+
+    <!-- Acciones del panel -->
+    <div class="left-footer">
+      <button
+        class="btn primary"
+        (click)="mostrarTodas()"
+        aria-label="Mostrar todos los vendedores en el mapa">
+        🌍 Ver Todos
+      </button>
+      <button
+        class="btn ghost"
+        (click)="obtenerMiUbicacion()"
+        aria-label="Mostrar mi ubicación en el mapa">
+        📍 Mi Ubicación
+      </button>
+    </div>
+  </div>
+
+  <!-- Panel Derecho - Mapa -->
+  <div class="right-panel">
+    <!-- Header del mapa -->
+    <div class="map-header">
+      <h3>🗺️ Mapa Interactivo</h3>
+      <div class="status">
+        <span [ngClass]="{'loading-shimmer': mapLoading}">{{ mapStatus }}</span>
+      </div>
+    </div>
+
+    <!-- Contenedor del mapa -->
+    <div class="leaflet-map">
+      <div id="geoloc-map" #mapContainer style="width: 100%; height: 100%;"></div>
+
+      <!-- Overlay de carga -->
+      <div class="map-loading" *ngIf="mapLoading">
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <strong>{{ mapStatus }}</strong>
+          <br>
+          <small>Preparando experiencia interactiva...</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leyenda del mapa -->
+    <div class="map-legend">
+      <div class="legend-item">
+        <span class="legend-dot" style="background: #10b981;"></span>
+        <span>Vendedores Activos</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" style="background: #f59e0b;"></span>
+        <span>Vendedores Ocupados</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" style="background: #ef4444;"></span>
+        <span>Vendedores Inactivos</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" style="background: #ef4444; animation: pulse 2s infinite;"></span>
+        <span>Tu Ubicación</span>
+      </div>
+    </div>
+  </div>
+</div>

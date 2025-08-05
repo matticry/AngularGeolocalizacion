@@ -46,12 +46,8 @@ export const routes: Routes = [
 
       // REPORTES - Rutas directas
       {
-        path: 'reportes/geolocalizacion',
-        loadComponent: () => import('./features/reportes/geolocalizacion/geolocalizacion-reporte.component').then(m => m.GeolocalizacionReporteComponent)
-      },
-      {
         path: 'reportes/vendedores',
-        loadComponent: () => import('./features/reportes/vendedores/vendedores-reporte.component').then(m => m.VendedoresReporteComponent)
+        loadComponent: () => import('./features/reportes/geolocalizacion/geolocalizacion-reporte.component').then(m => m.GeolocalizacionReporteComponent)
       },
       {
         path: 'reportes/detalles-registro',

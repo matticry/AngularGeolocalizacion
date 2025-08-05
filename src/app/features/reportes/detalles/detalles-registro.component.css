@@ -1,0 +1,169 @@
+/* src/app/features/reportes/detalles/detalles-registro.component.css */
+:host { display: block; box-sizing: border-box; }
+
+/* Page layout */
+.detalle-page {
+  padding: 1rem 1.25rem;
+  background: #f3f4f6;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Header */
+.detalle-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom: 0.75rem;
+}
+.detalle-header h2 {
+  margin:0;
+  font-size:1.2rem;
+  color:#0f172a;
+}
+.header-actions .btn.export {
+  background:#0ea5a4;
+  color:white;
+  border:none;
+  padding:0.5rem 0.8rem;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+/* Filtros */
+.filtros-container {
+  background: #fff;
+  padding: 0.8rem;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(2,6,23,0.06);
+  margin-bottom: 0.9rem;
+}
+.filtros-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.field {
+  display:flex;
+  flex-direction:column;
+  min-width: 160px;
+}
+.field label { font-size: 0.85rem; color:#334155; margin-bottom:0.25rem; }
+.field input[type="text"], .field input[type="date"] {
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #e6edf3;
+  background: #fff;
+  outline: none;
+}
+.toggles {
+  display:flex;
+  gap:0.6rem;
+  align-items:center;
+  margin-left: 0.4rem;
+}
+.toggles label { font-size:0.9rem; color:#475569; display:flex; gap:0.3rem; align-items:center; }
+
+/* Actions */
+.actions { margin-left:auto; display:flex; gap:0.5rem; }
+.btn {
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #111827;
+  color: white;
+}
+.btn.ghost {
+  background: transparent;
+  color: #111827;
+  border: 1px solid #e6edf3;
+}
+
+/* Mapa area */
+.map-area {
+  display:flex;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+.map-left-info {
+  width: 180px;
+  background: #fff;
+  padding: 0.65rem;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.04);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.map-left-info .stat { text-align:center; }
+.map-left-info .stat strong { display:block; font-size:1.25rem; color:#0f172a; }
+.map-container {
+  flex: 1;
+  min-height: 300px;
+  border-radius: 10px;
+  border: 1px solid #e6edf3;
+  overflow: hidden;
+  background: #e6eef6;
+}
+
+/* Tabla area */
+.tabla-area {
+  background: #fff;
+  padding: 0.5rem;
+  border-radius: 4px; /* contenedor sí con radio pequeño si quieres */
+  box-shadow: 0 6px 18px rgba(2,6,23,0.04);
+}
+
+/* ---- Aquí quitamos bordes redondeados de la tabla ---- */
+.registros-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  border-radius: 0; /* asegurar sin radio */
+  overflow: visible;
+}
+.registros-table thead th {
+  background: #0f172a;
+  color: white;
+  text-align: left;
+  padding: 0.6rem 0.6rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 0; /* sin radio */
+}
+.registros-table thead th:first-child {
+  border-top-left-radius: 0;
+}
+.registros-table thead th:last-child {
+  border-top-right-radius: 0;
+}
+
+.registros-table tbody td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #eef2f7;
+  color: #0f172a;
+}
+.row-registro { cursor: pointer; }
+.row-registro:hover { background: #f8fafc; }
+.ubicacion-col { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.center-col { text-align: center; }
+.right-col { text-align: right; }
+
+/* Empty row */
+.empty {
+  padding: 1rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+/* Marker custom small */
+.registro-marker { }
+
+/* Responsive */
+@media (max-width: 980px) {
+  .filtros-row { flex-direction: column; align-items: stretch; }
+  .map-area { flex-direction: column; }
+  .map-left-info { width: 100%; order: 2; }
+}
