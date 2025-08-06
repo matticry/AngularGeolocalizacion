@@ -1,0 +1,111 @@
+<!-- src/app/features/auth/components/login/login.component.html -->
+
+<div class="login-container">
+  <div class="login-card">
+    <!-- Header con Logo -->
+    <div class="login-header">
+      <div class="logo-container">
+        <div class="logo-circle">
+          <div class="logo-lines"></div>
+        </div>
+      </div>
+      <h1 class="company-name">Egas Tamayo</h1>
+      <h2 class="company-subtitle">& Asociados</h2>
+      <p class="company-tagline">Contabilidad • Finanzas • Seguros</p>
+    </div>
+
+    <!-- Formulario de Login -->
+    <div class="login-form-container" *ngIf="!showEmpresaSelection()">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+
+        <!-- Campo Usuario -->
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Usuario</mat-label>
+          <input
+            matInput
+            formControlName="nombreUsuario"
+            placeholder="Ingrese su usuario"
+            autocomplete="username">
+          <mat-icon matSuffix>person</mat-icon>
+          <mat-error *ngIf="nombreUsuarioErrors">
+            {{ nombreUsuarioErrors }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Campo Contraseña -->
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Contraseña</mat-label>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="contrasena"
+            placeholder="Ingrese su contraseña"
+            autocomplete="current-password">
+          <mat-icon
+            matSuffix
+            (click)="togglePasswordVisibility()"
+            class="password-toggle">
+            {{ hidePassword() ? 'visibility_off' : 'visibility' }}
+          </mat-icon>
+          <mat-error *ngIf="contrasenaErrors">
+            {{ contrasenaErrors }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Botón de Login -->
+        <button
+          mat-raised-button
+          type="submit"
+          class="login-button"
+          [disabled]="isLoading()">
+
+          <span *ngIf="!isLoading()">Inicio Sesión</span>
+
+          <div *ngIf="isLoading()" class="loading-container">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Verificando...</span>
+          </div>
+        </button>
+
+      </form>
+    </div>
+
+    <!-- Selección de Empresa -->
+    <div class="empresa-selection" *ngIf="showEmpresaSelection()">
+      <div class="empresa-header">
+        <mat-icon class="empresa-icon">business</mat-icon>
+        <h3>Selecciona tu empresa</h3>
+        <p>Elige la empresa con la que deseas trabajar</p>
+      </div>
+
+      <div class="empresa-list">
+        <button
+          *ngFor="let empresa of empresas()"
+          mat-stroked-button
+          class="empresa-button"
+          (click)="onEmpresaSelect(empresa)">
+
+          <div class="empresa-info">
+            <mat-icon>domain</mat-icon>
+            <span class="empresa-name">{{ empresa.nomempresa }}</span>
+            <mat-icon class="arrow-icon">arrow_forward_ios</mat-icon>
+          </div>
+        </button>
+      </div>
+
+      <button
+        mat-text-button
+        class="back-button"
+        (click)="showEmpresaSelection.set(false)">
+        <mat-icon>arrow_back</mat-icon>
+        Volver al login
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="login-footer">
+    <p>&copy; 2025 Egas Tamayo & Asociados. Todos los derechos reservados.</p>
+  </div>
+</div>

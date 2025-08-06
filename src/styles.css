@@ -1,6 +1,5 @@
 @import '../node_modules/leaflet/dist/leaflet.css';
 
-
 /* Fix para iconos de Leaflet en Angular */
 .leaflet-marker-icon {
   margin-left: -12px !important;
@@ -20,7 +19,6 @@
   background: white;
 }
 
-
 * {
   margin: 0;
   padding: 0;
@@ -35,9 +33,49 @@ html, body {
   background: #f8fafc;
 }
 
-/* Remover estilos por defecto de Angular */
 app-root {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+
+/* Variables globales para el sistema de colores */
+:root {
+  --primary-blue: #2563eb;
+  --secondary-blue: #3b82f6;
+  --light-blue: #dbeafe;
+  --dark-gray: #1f2937;
+  --medium-gray: #6b7280;
+  --light-gray: #f3f4f6;
+  --border-gray: #d1d5db;
+  --white: #ffffff;
+  --error-red: #ef4444;
+  --success-green: #10b981;
+  --background-light: #f8fafc;
+}
+
+/* Utilidades globales */
+.text-center { text-align: center; }
+.hidden { display: none; }
+.flex { display: flex; }
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Clases de utilidad adicionales */
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.rounded { border-radius: 0.375rem; }
+.shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
+
+/* Mejoras para formularios globales */
+input:focus,
+button:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
 }

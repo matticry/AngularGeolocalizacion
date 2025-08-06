@@ -1,0 +1,223 @@
+<!-- src/app/layout/main-layout.component.html -->
+
+<div class="layout-container">
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.sidebar-collapsed]="sidebarCollapsed()">
+    <div class="sidebar-header">
+      <div class="logo" [class.logo-collapsed]="sidebarCollapsed()">
+        <span class="logo-icon">🌍</span>
+        <span class="logo-text" *ngIf="!sidebarCollapsed()">Sistema de Geolocalización</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul class="nav-list">
+
+        <!-- Dashboard Principal -->
+        <li class="nav-item">
+          <a routerLink="/dashboard"
+             routerLinkActive="active"
+             class="nav-link"
+             [title]="sidebarCollapsed() ? 'Dashboard' : ''">
+            <div class="nav-main-content">
+              <span class="nav-icon">📊</span>
+              <span class="nav-text" *ngIf="!sidebarCollapsed()">Dashboard</span>
+            </div>
+          </a>
+        </li>
+
+        <!-- Separador -->
+        <li class="nav-divider" *ngIf="!sidebarCollapsed()"></li>
+
+        <!-- CONFIGURACIÓN -->
+        <li class="nav-item nav-group">
+          <div class="nav-link nav-group-header"
+               (click)="toggleNavGroup('configuracion')"
+               [class.active]="expandedGroups['configuracion']"
+               [title]="sidebarCollapsed() ? 'Configuración' : ''">
+            <div class="nav-main-content">
+              <span class="nav-icon">⚙️</span>
+              <span class="nav-text" *ngIf="!sidebarCollapsed()">Configuración</span>
+            </div>
+            <span class="nav-arrow" *ngIf="!sidebarCollapsed()"
+                  [class.nav-arrow-expanded]="expandedGroups['configuracion']">▼</span>
+          </div>
+          <ul class="nav-sublist" *ngIf="!sidebarCollapsed() && expandedGroups['configuracion']">
+            <li class="nav-subitem">
+              <a routerLink="/configuracion/geolocalizacion"
+                 routerLinkActive="active"
+                 class="nav-sublink">
+                <span class="nav-subicon">📍</span>
+                <span class="nav-subtext">Geolocalización</span>
+              </a>
+            </li>
+            <li class="nav-subitem">
+              <a routerLink="/configuracion/geocercas"
+                 routerLinkActive="active"
+                 class="nav-sublink">
+                <span class="nav-subicon">🔵</span>
+                <span class="nav-subtext">Geocercas y Vendedores</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- MAESTRO -->
+        <li class="nav-item nav-group">
+          <div class="nav-link nav-group-header"
+               (click)="toggleNavGroup('maestro')"
+               [class.active]="expandedGroups['maestro']"
+               [title]="sidebarCollapsed() ? 'Maestro' : ''">
+            <div class="nav-main-content">
+              <span class="nav-icon">🗂️</span>
+              <span class="nav-text" *ngIf="!sidebarCollapsed()">Maestro</span>
+            </div>
+            <span class="nav-arrow" *ngIf="!sidebarCollapsed()"
+                  [class.nav-arrow-expanded]="expandedGroups['maestro']">▼</span>
+          </div>
+          <ul class="nav-sublist" *ngIf="!sidebarCollapsed() && expandedGroups['maestro']">
+            <li class="nav-subitem">
+              <a routerLink="/maestro/geolocalizacion"
+                 routerLinkActive="active"
+                 class="nav-sublink">
+                <span class="nav-subicon">🌍</span>
+                <span class="nav-subtext">Geolocalización</span>
+              </a>
+            </li>
+            <li class="nav-subitem">
+              <a routerLink="/maestro/geocercas"
+                 routerLinkActive="active"
+                 class="nav-sublink">
+                <span class="nav-subicon">📐</span>
+                <span class="nav-subtext">Geocercas</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- REPORTES -->
+        <li class="nav-item nav-group">
+          <div class="nav-link nav-group-header"
+               (click)="toggleNavGroup('reportes')"
+               [class.active]="expandedGroups['reportes']"
+               [title]="sidebarCollapsed() ? 'Reportes' : ''">
+            <div class="nav-main-content">
+              <span class="nav-icon">📈</span>
+              <span class="nav-text" *ngIf="!sidebarCollapsed()">Reportes</span>
+            </div>
+            <span class="nav-arrow" *ngIf="!sidebarCollapsed()"
+                  [class.nav-arrow-expanded]="expandedGroups['reportes']">▼</span>
+          </div>
+          <ul class="nav-sublist" *ngIf="!sidebarCollapsed() && expandedGroups['reportes']">
+            <li class="nav-subitem">
+              <a routerLink="/reportes/vendedores"
+                 routerLinkActive="active"
+                 class="nav-sublink">
+                <span class="nav-subicon">👥</span>
+                <span class="nav-subtext">Vendedores</span>
+              </a>
+            </li>
+            <li class="nav-subitem">
+              <a routerLink="/reportes/detalles-registro"
+                 routerLinkActive="active"
+                 class="nav-sublink">
+                <span class="nav-subicon">📋</span>
+                <span class="nav-subtext">Detalles Registro</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="main-content" [class.content-expanded]="sidebarCollapsed()">
+    <!-- Header -->
+    <header class="main-header">
+      <div class="header-left">
+        <button class="hamburger-btn" (click)="toggleSidebar()">
+          <span class="hamburger-lines">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        <div class="breadcrumb">
+          <span class="breadcrumb-text">{{ getCurrentPageTitle() }}</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-actions">
+          <!-- Botón de Notificaciones -->
+          <button class="header-btn"
+                  title="Notificaciones"
+                  (click)="onNotificationClick()">
+            <span class="header-icon">🔔</span>
+            <span class="notification-badge"
+                  *ngIf="notificationCount() > 0">{{ notificationCount() }}</span>
+          </button>
+
+          <!-- Sección de Usuario -->
+          <div class="user-section">
+            <div class="user-info" (click)="toggleUserMenu($event)">
+              <div class="user-details" *ngIf="currentUser()">
+                <span class="user-name">{{ userName() }}</span>
+                <span class="user-company" *ngIf="companyName() !== 'Sin empresa'">{{ companyName() }}</span>
+              </div>
+              <div class="user-avatar">
+                <span>{{ userInitials() }}</span>
+              </div>
+            </div>
+
+            <!-- Dropdown de Usuario -->
+            <div class="user-dropdown" *ngIf="userMenuOpen()">
+              <div class="dropdown-header">
+                <div class="dropdown-user-info">
+                  <div class="dropdown-avatar">
+                    <span>{{ userInitials() }}</span>
+                  </div>
+                  <div class="dropdown-details">
+                    <span class="dropdown-name">{{ userName() }}</span>
+                    <span class="dropdown-company">{{ companyName() }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dropdown-divider"></div>
+
+              <a href="#"
+                 class="dropdown-item"
+                 (click)="onProfileClick(); $event.preventDefault()">
+                <span class="dropdown-icon">👤</span>
+                Mi Perfil
+              </a>
+
+              <a href="#"
+                 class="dropdown-item"
+                 (click)="onSettingsClick(); $event.preventDefault()">
+                <span class="dropdown-icon">⚙️</span>
+                Configuración
+              </a>
+
+              <div class="dropdown-divider"></div>
+
+              <a href="#"
+                 class="dropdown-item logout"
+                 (click)="onLogout(); $event.preventDefault()">
+                <span class="dropdown-icon">🚪</span>
+                Cerrar Sesión
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
