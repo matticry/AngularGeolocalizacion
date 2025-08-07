@@ -2,74 +2,64 @@
 <div class="vendedores-geoloc-container">
   <!-- Panel Izquierdo -->
   <div class="left-panel">
-    <!-- Header con estadísticas -->
-    <div class="header-left">
-      <h2>👥 Vendedores</h2>
-      <p class="sub">Gestión y ubicación en tiempo real</p>
+    <!-- Estado de carga/error -->
+    <div class="status-section" *ngIf="loading() || error()">
+      <div class="loading-indicator" *ngIf="loading()">
+        <div class="spinner"></div>
+        <span>Cargando vendedores...</span>
+      </div>
+
+      <div class="error-indicator" *ngIf="error()">
+        <span class="error-icon">⚠️</span>
+        <span>{{ error() }}</span>
+        <button class="retry-btn" (click)="refresh()">Reintentar</button>
+      </div>
     </div>
 
-    <!-- Estadísticas rápidas -->
-    <div class="quick-stats">
-      <div class="stat-card">
-        <div class="stat-number">{{ vendedoresFiltrados.length }}</div>
-        <div class="stat-label">Total</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">{{ getVendedoresPorEstado('activo') }}</div>
-        <div class="stat-label">Activos</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">{{ getTotalVentasHoy() }}</div>
-        <div class="stat-label">Ventas</div>
-      </div>
-    </div>
 
     <!-- Controles de filtrado -->
-    <div class="controls-section">
-      <!-- Barra de búsqueda -->
+    <div class="controls-section" *ngIf="!loading()">
+      <!-- Buscador mejorado -->
       <div class="search-box">
         <input
           type="text"
-          placeholder="Buscar por nombre, dirección, código..."
-          [(ngModel)]="searchTerm"
-          (input)="filtrarVendedores()"
-          aria-label="Buscar vendedores" />
-        <button class="btn" (click)="filtrarVendedores()" aria-label="Buscar">
-          🔍
+          placeholder="Buscar ubicación en Ecuador"
+          class="w-full max-w-xs px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition duration-300"
+        />
+
+        <button class="btn" (click)="filtrarVendedores()" [disabled]="loading()" aria-label="Buscar">
+          <span>🔍</span>
         </button>
       </div>
 
-      <!-- Filtros por estado -->
+      <!-- Filtros compactos -->
       <div class="filter-estados">
         <button
           class="filter-chip"
           [class.active]="filtroEstado === 'todos'"
-          (click)="filtroEstado = 'todos'; filtrarVendedores()">
+          (click)="onFiltroEstadoChange('todos')"
+          [disabled]="loading()">
           Todos
         </button>
         <button
           class="filter-chip"
           [class.active]="filtroEstado === 'activo'"
-          (click)="filtroEstado = 'activo'; filtrarVendedores()">
+          (click)="onFiltroEstadoChange('activo')"
+          [disabled]="loading()">
           ✓ Activos
         </button>
         <button
           class="filter-chip"
-          [class.active]="filtroEstado === 'ocupado'"
-          (click)="filtroEstado = 'ocupado'; filtrarVendedores()">
-          🔥 Ocupados
-        </button>
-        <button
-          class="filter-chip"
           [class.active]="filtroEstado === 'inactivo'"
-          (click)="filtroEstado = 'inactivo'; filtrarVendedores()">
+          (click)="onFiltroEstadoChange('inactivo')"
+          [disabled]="loading()">
           ⏸ Inactivos
         </button>
       </div>
     </div>
 
-    <!-- Lista de vendedores -->
-    <div class="list-vendedores">
+    <!-- Lista de vendedores optimizada -->
+    <div class="list-vendedores" *ngIf="!loading() && !error()">
       <div
         *ngFor="let v of vendedoresFiltrados; trackBy: trackByVendedorId"
         class="v-item"
@@ -82,51 +72,88 @@
 
         <div class="v-info">
           <div class="v-name">
-            {{ v.nombre }}
-            <small *ngIf="v.apellidos">{{ v.apellidos }}</small>
+            <span class="name-primary">{{ v.nombre }}</span>
+            <small *ngIf="v.apellidos" class="name-secondary">{{ v.apellidos }}</small>
+            <span class="v-codigo">{{ v.codigo }}</span>
             <span class="v-status" [ngClass]="v.estado || 'default'">
               {{ getEstadoIcon(v.estado || 'default') }} {{ v.estado || 'Sin estado' }}
             </span>
           </div>
 
           <div class="v-meta">
-            📍 {{ v.direccion || 'Sin dirección' }} • {{ v.distrito || 'Sin distrito' }}
-            <br *ngIf="v.telefono">
-            <span *ngIf="v.telefono">📞 {{ v.telefono }}</span>
-          </div>
-
-          <div class="v-stats">
-            <div class="v-stat">
-              <span class="v-stat-value">{{ v.ventasHoy || 0 }}</span>
-              <span class="v-stat-label">Ventas</span>
+            <div class="meta-row" *ngIf="v.direccion">
+              📍 {{ v.direccion }}
             </div>
-            <div class="v-stat">
-              <span class="v-stat-value">{{ v.clientesVisitados || 0 }}</span>
-              <span class="v-stat-label">Clientes</span>
+            <div class="meta-row" *ngIf="v.ciudad || v.zona">
+              🏢 {{ v.ciudad || v.zona }}
+            </div>
+            <div class="meta-row" *ngIf="v.telefono">
+              📞 {{ v.telefono }}
+            </div>
+            <div class="meta-row" *ngIf="v.ruc">
+              💼 {{ v.ruc }}
             </div>
           </div>
+          <!-- Eliminadas las estadísticas v-stats -->
         </div>
       </div>
 
       <!-- Estado vacío -->
-      <div class="empty" *ngIf="vendedoresFiltrados.length === 0">
-        <p>🔍 No se encontraron vendedores</p>
-        <small>Intenta con otro término de búsqueda o ajusta los filtros</small>
+      <div class="empty" *ngIf="vendedoresFiltrados.length === 0 && !loading()">
+        <div class="empty-content">
+          <span class="empty-icon">🔍</span>
+          <p>No se encontraron vendedores</p>
+          <small *ngIf="searchTerm || filtroEstado !== 'todos'">
+            Intenta con otro término o ajusta los filtros
+          </small>
+          <small *ngIf="!searchTerm && filtroEstado === 'todos'">
+            No hay vendedores registrados
+          </small>
+        </div>
       </div>
     </div>
 
-    <!-- Acciones del panel -->
-    <div class="left-footer">
+    <!-- Controles de paginación con iconos -->
+    <div class="pagination-controls" *ngIf="paginacion && paginacion.totalPaginas > 1 && !loading()">
+      <button
+        class="pagination-btn"
+        [disabled]="!paginacion.tienePaginaAnterior"
+        (click)="onPaginaAnterior()"
+        aria-label="Anterior">
+        <span class="material-icons">chevron_left</span>
+      </button>
+
+      <div class="pagination-info-detailed">
+        <span>{{ paginacion.paginaActual }} / {{ paginacion.totalPaginas }}</span>
+      </div>
+
+      <button
+        class="pagination-btn"
+        [disabled]="!paginacion.tienePaginaSiguiente"
+        (click)="onPaginaSiguiente()"
+        aria-label="Siguiente">
+        <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
+    <!-- Información de paginación compacta -->
+    <div class="pagination-info" *ngIf="paginacion && !loading()">
+      <small>{{ getPaginaInicio() }} - {{ getPaginaFin() }} de {{ paginacion.totalRegistros }}</small>
+    </div>
+
+
+    <!-- Acciones compactas -->
+    <div class="left-footer" *ngIf="!loading() && !error()">
       <button
         class="btn primary"
         (click)="mostrarTodas()"
-        aria-label="Mostrar todos los vendedores en el mapa">
+        [disabled]="vendedoresFiltrados.length === 0"
+        aria-label="Ver todos">
         🌍 Ver Todos
       </button>
       <button
         class="btn ghost"
         (click)="obtenerMiUbicacion()"
-        aria-label="Mostrar mi ubicación en el mapa">
+        aria-label="Mi ubicación">
         📍 Mi Ubicación
       </button>
     </div>
@@ -134,11 +161,30 @@
 
   <!-- Panel Derecho - Mapa -->
   <div class="right-panel">
-    <!-- Header del mapa -->
+    <!-- Header simplificado -->
     <div class="map-header">
-      <h3>🗺️ Mapa Interactivo</h3>
-      <div class="status">
-        <span [ngClass]="{'loading-shimmer': mapLoading}">{{ mapStatus }}</span>
+      <!-- Información de vendedores -->
+      <div class="header-vendedores">
+        <div class="header-title">
+          <h2>👥 Vendedores</h2>
+          <button class="refresh-btn" (click)="refresh()" [disabled]="loading()" title="Actualizar datos">
+            <span [class.spinning]="loading()">🔄</span>
+          </button>
+        </div>
+        <!-- Mostrar empresa seleccionada -->
+        <div class="empresa-info" *ngIf="empresaSeleccionada">
+          <small>📊 {{ empresaNombre }}</small>
+        </div>
+      </div>
+
+      <!-- Status del mapa -->
+      <div class="header-mapa">
+        <div class="status">
+          <span [ngClass]="{'loading-shimmer': mapLoading}">{{ mapStatus }}</span>
+          <span class="map-counter" *ngIf="!mapLoading && vendedoresFiltrados.length > 0">
+            {{ vendedoresFiltrados.length }} vendedores
+          </span>
+        </div>
       </div>
     </div>
 
@@ -146,34 +192,50 @@
     <div class="leaflet-map">
       <div id="geoloc-map" #mapContainer style="width: 100%; height: 100%;"></div>
 
+      <!-- Leyenda flotante -->
+      <div class="map-legend-floating" *ngIf="!loading() && !error() && vendedoresFiltrados.length > 0">
+        <div class="legend-title">Leyenda</div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #10b981;"></span>
+          <span>Activos ({{ estadisticas.activos }})</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #ef4444;"></span>
+          <span>Inactivos ({{ estadisticas.inactivos }})</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #1976d2; animation: pulse 2s infinite;"></span>
+          <span>Tu Ubicación</span>
+        </div>
+      </div>
+
       <!-- Overlay de carga -->
       <div class="map-loading" *ngIf="mapLoading">
         <div class="spinner" aria-hidden="true"></div>
         <div>
           <strong>{{ mapStatus }}</strong>
           <br>
-          <small>Preparando experiencia interactiva...</small>
+          <small>Preparando mapa con detalles de calles...</small>
         </div>
       </div>
-    </div>
 
-    <!-- Leyenda del mapa -->
-    <div class="map-legend">
-      <div class="legend-item">
-        <span class="legend-dot" style="background: #10b981;"></span>
-        <span>Vendedores Activos</span>
+      <!-- Overlay de error -->
+      <div class="map-error" *ngIf="error() && !mapLoading">
+        <div class="error-content">
+          <span class="error-icon">⚠️</span>
+          <strong>Error cargando datos</strong>
+          <p>{{ error() }}</p>
+          <button class="retry-btn" (click)="refresh()">Reintentar</button>
+        </div>
       </div>
-      <div class="legend-item">
-        <span class="legend-dot" style="background: #f59e0b;"></span>
-        <span>Vendedores Ocupados</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-dot" style="background: #ef4444;"></span>
-        <span>Vendedores Inactivos</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-dot" style="background: #ef4444; animation: pulse 2s infinite;"></span>
-        <span>Tu Ubicación</span>
+
+      <!-- Overlay sin datos -->
+      <div class="map-no-data" *ngIf="!loading() && !error() && vendedoresFiltrados.length === 0 && !mapLoading">
+        <div class="no-data-content">
+          <span class="no-data-icon">📍</span>
+          <strong>Sin vendedores para mostrar</strong>
+          <p>No hay vendedores que coincidan con los filtros</p>
+        </div>
       </div>
     </div>
   </div>
