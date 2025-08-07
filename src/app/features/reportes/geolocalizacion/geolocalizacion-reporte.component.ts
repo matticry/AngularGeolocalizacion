@@ -39,6 +39,23 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   selectedSuggestionIndex = -1;
   searchTimeout: any = null;
 
+  // 🆕 NUEVAS PROPIEDADES para búsqueda de ubicaciones en header
+  locationSearchTerm = '';
+  showLocationSuggestions = false;
+  currentLocationName = '';
+  userLocation: { lat: number, lng: number } | null = null;
+  private searchLocationMarker: L.Marker | null = null;
+
+  // Búsquedas rápidas predefinidas
+  quickSearches = [
+    { name: 'Quito Centro', icon: '🏛️', query: 'Centro Histórico Quito' },
+    { name: 'La Mariscal', icon: '🍺', query: 'La Mariscal Quito' },
+    { name: 'Cumbayá', icon: '🏘️', query: 'Cumbayá Ecuador' },
+    { name: 'El Valle', icon: '🏙️', query: 'Valle de los Chillos' },
+    { name: 'Calderón', icon: '🏘️', query: 'Calderón Quito' },
+    { name: 'Guayaquil', icon: '🌊', query: 'Guayaquil Ecuador' }
+  ];
+
   // Vendedores
   vendedores: Vendedor[] = [];
   vendedoresFiltrados: Vendedor[] = [];
@@ -57,7 +74,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   initialCenter: [number, number] = [-0.186879, -78.503194];
   initialZoom = 12;
 
-  // Estadísticas simplificadas (sin clientes)
   estadisticas = {
     total: 0,
     activos: 0,
@@ -68,7 +84,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   private estadoColors = {
     activo: { color: '#10b981', icon: '✓', bg: '#ecfdf5' },
     inactivo: { color: '#ef4444', icon: '⏸', bg: '#fef2f2' },
-    ocupado: { color: '#f59e42', icon: '⏳', bg: '#fff7ed' },
     default: { color: '#6b7280', icon: '👤', bg: '#f9fafb' }
   };
 
@@ -111,7 +126,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     this.subscribeToVendedorService();
     this.loadVendedores();
 
-    // Exponer función globalmente para botones del popup
     (window as any).updateVendedorLocation = (vendedorId: string) => {
       this.updateVendedorLocation(vendedorId);
     };
@@ -206,7 +220,227 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   }
 
   /* --------------------------
-     BÚSQUEDA Y FILTRADO
+     🆕 BÚSQUEDA DE UBICACIONES EN HEADER
+     -------------------------- */
+
+  onLocationSearchInput(event: any): void {
+    const value = event.target.value;
+    this.locationSearchTerm = value;
+    this.handleLocationSearchInput(value);
+  }
+
+  onLocationSearchFocus(): void {
+    if (this.locationSearchTerm.length > 2) {
+      this.showLocationSuggestions = true;
+    }
+  }
+
+  onLocationSearchBlur(event: FocusEvent): void {
+    // Delay para permitir clicks en sugerencias
+    setTimeout(() => {
+      const relatedTarget = event.relatedTarget as HTMLElement;
+      if (!relatedTarget || !relatedTarget.closest('.location-suggestions-dropdown')) {
+        this.showLocationSuggestions = false;
+        this.selectedSuggestionIndex = -1;
+      }
+    }, 150);
+  }
+
+  onLocationSearchKeydown(event: KeyboardEvent): void {
+    if (!this.showLocationSuggestions) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedSuggestionIndex = Math.min(
+          this.selectedSuggestionIndex + 1,
+          this.locationSuggestions.length - 1
+        );
+        break;
+
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedSuggestionIndex = Math.max(this.selectedSuggestionIndex - 1, -1);
+        break;
+
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedSuggestionIndex >= 0 && this.selectedSuggestionIndex < this.locationSuggestions.length) {
+          this.selectLocationSuggestion(this.locationSuggestions[this.selectedSuggestionIndex], this.selectedSuggestionIndex);
+        } else if (this.locationSearchTerm.trim()) {
+          this.performLocationSearchFromInput();
+        }
+        break;
+
+      case 'Escape':
+        this.showLocationSuggestions = false;
+        this.selectedSuggestionIndex = -1;
+        (event.target as HTMLInputElement).blur();
+        break;
+    }
+  }
+
+  clearLocationSearch(): void {
+    this.locationSearchTerm = '';
+    this.showLocationSuggestions = false;
+    this.selectedSuggestionIndex = -1;
+    this.locationSuggestions = [];
+  }
+
+  performLocationSearchFromInput(): void {
+    if (!this.locationSearchTerm.trim()) return;
+
+    if (this.locationSuggestions.length > 0) {
+      this.selectLocationSuggestion(this.locationSuggestions[0], 0);
+    } else {
+      this.searchAndNavigateToLocation(this.locationSearchTerm.trim());
+    }
+  }
+
+  performQuickSearch(quickSearch: any): void {
+    this.locationSearchTerm = quickSearch.name;
+    this.searchAndNavigateToLocation(quickSearch.query);
+  }
+
+  clearCurrentLocation(): void {
+    this.currentLocationName = '';
+    this.userLocation = null;
+
+    // Limpiar marcador de búsqueda
+    if (this.searchLocationMarker && this.map) {
+      this.map.removeLayer(this.searchLocationMarker);
+      this.searchLocationMarker = null;
+    }
+
+    // Volver a vista general del mapa
+    if (this.map && this.vendedoresFiltrados.length > 0) {
+      const group = new L.FeatureGroup(Array.from(this.markers.values()));
+      this.map.fitBounds(group.getBounds().pad(0.1));
+    } else if (this.map) {
+      this.map.setView(this.initialCenter, this.initialZoom);
+    }
+  }
+
+  // Método para calcular distancia (si el usuario tiene ubicación)
+  calculateDistance(suggestion: any): string {
+    if (!this.userLocation) return '';
+
+    const lat1 = this.userLocation.lat;
+    const lng1 = this.userLocation.lng;
+    const lat2 = parseFloat(suggestion.lat);
+    const lng2 = parseFloat(suggestion.lon);
+
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    } else {
+      return `${distance.toFixed(1)}km`;
+    }
+  }
+
+  // Nuevo método para búsqueda directa
+  private searchAndNavigateToLocation(query: string): void {
+    this.isSearchingLocation = true;
+    this.cdr.detectChanges();
+
+    const searchQuery = query.includes('Ecuador') ? query : `${query}, Ecuador`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&countrycodes=ec&addressdetails=1`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          const result = data[0];
+          const lat = parseFloat(result.lat);
+          const lng = parseFloat(result.lon);
+          const name = this.extractLocationName(result);
+
+          this.currentLocationName = name;
+          this.userLocation = { lat, lng };
+          this.navigateToLocationWithMarker(lat, lng, name, result.display_name);
+        } else {
+          alert(`No se encontraron resultados para: ${query}`);
+        }
+      })
+      .catch(error => {
+        console.error('Error en búsqueda:', error);
+        alert('Error al buscar la ubicación');
+      })
+      .finally(() => {
+        this.isSearchingLocation = false;
+        this.cdr.detectChanges();
+      });
+  }
+
+  // Crear icono para marcador de búsqueda
+  private createSearchLocationMarkerIcon(): L.DivIcon {
+    return L.divIcon({
+      className: 'search-location-marker-icon',
+      html: `
+        <div class="search-location-container">
+          <div class="search-location-pin">
+            <div class="search-location-dot">🔍</div>
+          </div>
+          <div class="search-location-pulse"></div>
+        </div>
+      `,
+      iconSize: [35, 35],
+      iconAnchor: [17, 35],
+      popupAnchor: [0, -35]
+    });
+  }
+
+  // Actualizar el método navigateToLocation para incluir marcador persistente
+  private navigateToLocationWithMarker(lat: number, lng: number, name: string, fullAddress: string): void {
+    if (!this.map) return;
+
+    // Centrar mapa
+    this.map.setView([lat, lng], 15, { animate: true });
+
+    // Remover marcador de búsqueda anterior si existe
+    if (this.searchLocationMarker) {
+      this.map.removeLayer(this.searchLocationMarker);
+    }
+
+    // Crear marcador persistente para la ubicación buscada
+    this.searchLocationMarker = L.marker([lat, lng], {
+      icon: this.createSearchLocationMarkerIcon()
+    }).addTo(this.map);
+
+    this.searchLocationMarker.bindPopup(`
+      <div style="text-align: center; max-width: 200px;">
+        <div style="font-weight: bold; color: #1976d2; margin-bottom: 4px;">
+          🔍 ${name}
+        </div>
+        <div style="color: #6b7280; font-size: 12px; line-height: 1.4;">
+          ${fullAddress}
+        </div>
+        <div style="margin-top: 8px;">
+          <button onclick="this.closest('.leaflet-popup').parentElement.style.display='none'"
+                  style="background: #f3f4f6; border: 1px solid #d1d5db; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    `).openPopup();
+
+    this.mapStatus = `Ubicación: ${name}`;
+
+    setTimeout(() => {
+      this.mapStatus = 'Mapa listo';
+    }, 3000);
+  }
+
+  /* --------------------------
+     BÚSQUEDA Y FILTRADO DE VENDEDORES
      -------------------------- */
 
   private setupSearchDebounce(): void {
@@ -289,10 +523,10 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
      MÉTODOS DEL MAPA
      -------------------------- */
 
-  private initializeMap(): void {
+  private async initializeMap(): Promise<void> {
     try {
-      this.mapStatus = 'Creando mapa...';
       this.mapLoading = true;
+      this.mapStatus = 'Creando mapa...';
       this.cdr.detectChanges();
 
       const containerId = 'geoloc-map';
@@ -300,32 +534,23 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       if (el) el.innerHTML = '';
 
       this.map = L.map(containerId, {
-        center: this.initialCenter,
-        zoom: this.initialZoom,
-        attributionControl: false,
-        zoomControl: false
+        center: [-0.186879, -78.503194],
+        zoom: 13,
+        zoomControl: true,
+        attributionControl: false
       });
 
-      // Tile layer mejorado
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap contributors, © CARTO',
-        maxZoom: 20,
-        subdomains: 'abcd'
-      }).addTo(this.map);
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        subdomains: 'abcd',
-        pane: 'shadowPane'
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18,
+        minZoom: 10,
+        tileSize: 512,
+        zoomOffset: -1,
       }).addTo(this.map);
 
       // Controles
       L.control.zoom({ position: 'bottomright' }).addTo(this.map);
       L.control.scale({ position: 'bottomleft', imperial: false }).addTo(this.map);
-
-      // Buscador de ubicaciones
-      this.addLocationSearchControl();
-
       this.renderVendedoresEnMapa();
 
       this.mapStatus = 'Mapa listo';
@@ -340,76 +565,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     }
   }
 
-  // Agregar control de búsqueda de ubicaciones mejorado
-  private addLocationSearchControl(): void {
-    if (!this.map) return;
-
-    const searchControl = L.Control.extend({
-      onAdd: (map: L.Map) => {
-        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-
-        container.innerHTML = `
-          <div class="location-search-input-container">
-            <input type="text"
-                   id="location-search-input"
-                   class="location-search-input"
-                   placeholder="🔍 Buscar ubicación en Ecuador..."
-                   autocomplete="off">
-            <button id="location-search-btn" class="location-search-btn">
-              Buscar
-            </button>
-          </div>
-          <div id="location-suggestions" class="location-search-suggestions" style="display: none;"></div>
-        `;
-
-        // Prevenir propagación de eventos del mapa
-        L.DomEvent.disableClickPropagation(container);
-        L.DomEvent.disableScrollPropagation(container);
-
-        // Referencias a elementos
-        this.locationSearchInput = container.querySelector('#location-search-input') as HTMLInputElement;
-        const searchBtn = container.querySelector('#location-search-btn') as HTMLButtonElement;
-        const suggestionsContainer = container.querySelector('#location-suggestions') as HTMLDivElement;
-
-        // Event listeners
-        this.locationSearchInput.addEventListener('input', (e) => {
-          this.handleLocationSearchInput((e.target as HTMLInputElement).value);
-        });
-
-        this.locationSearchInput.addEventListener('keydown', (e) => {
-          this.handleLocationSearchKeydown(e, suggestionsContainer);
-        });
-
-        this.locationSearchInput.addEventListener('focus', () => {
-          if (this.locationSuggestions.length > 0) {
-            suggestionsContainer.style.display = 'block';
-          }
-        });
-
-        // Cerrar sugerencias al hacer clic fuera
-        document.addEventListener('click', (e) => {
-          if (!container.contains(e.target as Node)) {
-            suggestionsContainer.style.display = 'none';
-            this.selectedSuggestionIndex = -1;
-          }
-        });
-
-        searchBtn.addEventListener('click', () => {
-          const query = this.locationSearchInput?.value.trim();
-          if (query) {
-            this.performLocationSearch(query);
-            suggestionsContainer.style.display = 'none';
-          }
-        });
-
-        return container;
-      }
-    });
-
-    new searchControl({ position: 'topright' }).addTo(this.map);
-  }
-
-  // Manejar entrada de texto en buscador con debounce
+  // Actualizar el método handleLocationSearchInput para header
   private handleLocationSearchInput(value: string): void {
     // Limpiar timeout anterior
     if (this.searchTimeout) {
@@ -419,11 +575,14 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     const query = value.trim();
 
     if (query.length < 2) {
-      this.hideSuggestions();
+      this.showLocationSuggestions = false;
+      this.locationSuggestions = [];
       return;
     }
 
-    // Debounce de 300ms para no hacer demasiadas peticiones
+    this.showLocationSuggestions = true;
+
+    // Debounce de 300ms
     this.searchTimeout = setTimeout(() => {
       this.searchLocationSuggestions(query);
     }, 300);
@@ -469,7 +628,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     if (!query || query.length < 2) return;
 
     this.isSearchingLocation = true;
-    this.showSearchingState();
 
     try {
       // Agregar "Ecuador" si no está incluido para mejor precisión
@@ -481,17 +639,15 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
 
       if (data && Array.isArray(data)) {
         this.locationSuggestions = data.filter(item => item.display_name && item.lat && item.lon);
-        this.showLocationSuggestions();
       } else {
         this.locationSuggestions = [];
-        this.showNoResultsMessage();
       }
     } catch (error) {
       console.error('Error buscando sugerencias:', error);
       this.locationSuggestions = [];
-      this.showNoResultsMessage();
     } finally {
       this.isSearchingLocation = false;
+      this.cdr.detectChanges(); // 🆕 AGREGAR DETECCIÓN DE CAMBIOS
     }
   }
 
@@ -509,43 +665,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     suggestionsContainer.style.display = 'block';
   }
 
-  // Mostrar sugerencias de ubicación
-  private showLocationSuggestions(): void {
-    const suggestionsContainer = document.querySelector('#location-suggestions') as HTMLDivElement;
-    if (!suggestionsContainer || this.locationSuggestions.length === 0) return;
-
-    const suggestionsHTML = this.locationSuggestions.map((suggestion, index) => {
-      const name = this.extractLocationName(suggestion);
-      const address = this.extractLocationAddress(suggestion);
-      const icon = this.getLocationIcon(suggestion);
-
-      return `
-        <div class="location-suggestion" data-index="${index}">
-          <span class="location-suggestion-icon">${icon}</span>
-          <div class="location-suggestion-text">
-            <div class="location-suggestion-name">${name}</div>
-            <div class="location-suggestion-address">${address}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    suggestionsContainer.innerHTML = suggestionsHTML;
-    suggestionsContainer.style.display = 'block';
-
-    // Agregar event listeners a las sugerencias
-    suggestionsContainer.querySelectorAll('.location-suggestion').forEach((element, index) => {
-      element.addEventListener('click', () => {
-        this.selectLocationSuggestion(this.locationSuggestions[index]);
-        suggestionsContainer.style.display = 'none';
-      });
-
-      element.addEventListener('mouseenter', () => {
-        this.selectedSuggestionIndex = index;
-        this.updateSuggestionSelection(suggestionsContainer.querySelectorAll('.location-suggestion'));
-      });
-    });
-  }
 
   // Mostrar mensaje de no resultados
   private showNoResultsMessage(): void {
@@ -577,19 +696,25 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     });
   }
 
-  // Seleccionar una sugerencia
-  private selectLocationSuggestion(suggestion: any): void {
-    if (!suggestion || !this.locationSearchInput) return;
+  // Seleccionar una sugerencia (versión mejorada)
+  selectLocationSuggestion(suggestion: any, index?: number): void {
+    if (!suggestion) return;
 
     const lat = parseFloat(suggestion.lat);
     const lng = parseFloat(suggestion.lon);
     const name = this.extractLocationName(suggestion);
 
-    // Actualizar input
-    this.locationSearchInput.value = name;
+    // Actualizar estado
+    this.locationSearchTerm = name;
+    this.currentLocationName = name;
+    this.userLocation = { lat, lng };
+    this.showLocationSuggestions = false;
+    this.selectedSuggestionIndex = -1;
 
     // Navegar al lugar
-    this.navigateToLocation(lat, lng, name, suggestion.display_name);
+    this.navigateToLocationWithMarker(lat, lng, name, suggestion.display_name);
+
+    this.cdr.detectChanges();
   }
 
   // Realizar búsqueda directa (cuando se presiona botón o Enter)
@@ -629,7 +754,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   }
 
   // Extraer nombre de la ubicación
-  private extractLocationName(suggestion: any): string {
+  extractLocationName(suggestion: any): string {
     if (suggestion.address) {
       return suggestion.address.city ||
         suggestion.address.town ||
@@ -644,7 +769,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   }
 
   // Extraer dirección de la ubicación
-  private extractLocationAddress(suggestion: any): string {
+  extractLocationAddress(suggestion: any): string {
     if (suggestion.address) {
       const parts = [];
       if (suggestion.address.road) parts.push(suggestion.address.road);
@@ -659,7 +784,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   }
 
   // Obtener icono según tipo de ubicación
-  private getLocationIcon(suggestion: any): string {
+  getLocationIcon(suggestion: any): string {
     const type = suggestion.type || suggestion.category || '';
     const place = suggestion.place_type || '';
 

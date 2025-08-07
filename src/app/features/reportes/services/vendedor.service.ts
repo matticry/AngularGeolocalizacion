@@ -204,7 +204,6 @@ export class VendedorService {
       total: vendedores.length,
       activos: vendedores.filter(v => v.estado === 'activo').length,
       inactivos: vendedores.filter(v => v.estado === 'inactivo').length,
-      ocupados: vendedores.filter(v => v.estado === 'ocupado').length,
       totalVentasHoy: vendedores.reduce((sum, v) => sum + (v.ventasHoy || 0), 0),
       totalClientes: vendedores.reduce((sum, v) => sum + (v.clientesVisitados || 0), 0)
     };

@@ -55,7 +55,7 @@ export interface Vendedor {
   zona?: string;
   ciudad?: string;
   representante?: string;
-  estado?: 'activo' | 'inactivo' | 'ocupado';
+  estado?: 'activo' | 'inactivo';
   avatar?: string;
   ventasHoy?: number; // Datos adicionales que se pueden agregar
   clientesVisitados?: number;

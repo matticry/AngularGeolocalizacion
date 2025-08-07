@@ -200,14 +200,14 @@ export class GeocercasMaestroComponent implements OnInit, OnDestroy, AfterViewIn
 
       this.map = L.map(mapContainer, {
         center: [-0.186879, -78.503194],
-        zoom: 12,
+        zoom: 20,
         zoomControl: true,
         attributionControl: false
       });
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
+        maxZoom: 20
       }).addTo(this.map);
 
       // Eventos del mapa

@@ -1,4 +1,5 @@
 <!-- src/app/features/reportes/geolocalizacion/geolocalizacion-reporte.component.html -->
+
 <div class="vendedores-geoloc-container">
   <!-- Panel Izquierdo -->
   <div class="left-panel">
@@ -23,10 +24,12 @@
       <div class="search-box">
         <input
           type="text"
-          placeholder="Buscar ubicación en Ecuador"
-          class="w-full max-w-xs px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition duration-300"
+          placeholder="🔍 Buscar vendedores..."
+          [(ngModel)]="searchTerm"
+          (input)="filtrarVendedores()"
+          [disabled]="loading()"
+          aria-label="Buscar vendedores"
         />
-
         <button class="btn" (click)="filtrarVendedores()" [disabled]="loading()" aria-label="Buscar">
           <span>🔍</span>
         </button>
@@ -161,21 +164,18 @@
 
   <!-- Panel Derecho - Mapa -->
   <div class="right-panel">
-    <!-- Header simplificado -->
     <div class="map-header">
       <!-- Información de vendedores -->
       <div class="header-vendedores">
         <div class="header-title">
           <h2>👥 Vendedores</h2>
-          <button class="refresh-btn" (click)="refresh()" [disabled]="loading()" title="Actualizar datos">
-            <span [class.spinning]="loading()">🔄</span>
-          </button>
-        </div>
-        <!-- Mostrar empresa seleccionada -->
-        <div class="empresa-info" *ngIf="empresaSeleccionada">
-          <small>📊 {{ empresaNombre }}</small>
+          <!-- Mostrar empresa seleccionada -->
+          <div class="empresa-info" *ngIf="empresaSeleccionada">
+            <small>📊 {{ empresaNombre }}</small>
+          </div>
         </div>
       </div>
+
 
       <!-- Status del mapa -->
       <div class="header-mapa">
@@ -185,6 +185,100 @@
             {{ vendedoresFiltrados.length }} vendedores
           </span>
         </div>
+      </div>
+    </div>
+
+    <div class="location-search-container">
+      <div class="location-search-wrapper">
+        <!-- Input de búsqueda -->
+        <div class="location-search-input-group">
+          <span class="search-icon">🔍</span>
+          <input
+            #locationSearchInput
+            type="text"
+            class="location-search-input"
+            placeholder="Buscar ubicación en Ecuador..."
+            [(ngModel)]="locationSearchTerm"
+            (input)="onLocationSearchInput($event)"
+            (keydown)="onLocationSearchKeydown($event)"
+            (focus)="onLocationSearchFocus()"
+            (blur)="onLocationSearchBlur($event)"
+            autocomplete="off"
+            spellcheck="false"
+            [disabled]="loading()"
+          />
+          <button
+            class="search-clear-btn"
+            *ngIf="locationSearchTerm"
+            (click)="clearLocationSearch()"
+            type="button"
+            aria-label="Limpiar búsqueda">
+            ✕
+          </button>
+          <button
+            class="search-location-btn"
+            (click)="performLocationSearchFromInput()"
+            [disabled]="!locationSearchTerm || isSearchingLocation"
+            type="button"
+            aria-label="Buscar ubicación">
+            <span *ngIf="!isSearchingLocation">📍</span>
+            <span *ngIf="isSearchingLocation" class="spinner-small"></span>
+          </button>
+        </div>
+
+        <!-- Sugerencias dropdown -->
+        <div
+          class="location-suggestions-dropdown"
+          [class.show]="showLocationSuggestions && (locationSuggestions.length > 0 || isSearchingLocation)"
+          #suggestionsContainer>
+
+          <!-- Estado de carga -->
+          <div class="location-suggestion-item loading" *ngIf="isSearchingLocation">
+                  <span class="suggestion-icon">
+                    <div class="spinner-small"></div>
+                  </span>
+            <div class="suggestion-content">
+              <div class="suggestion-name">Buscando ubicaciones...</div>
+              <div class="suggestion-address">Consultando mapa de Ecuador</div>
+            </div>
+          </div>
+
+          <!-- Resultados -->
+          <div
+            *ngFor="let suggestion of locationSuggestions; let i = index"
+            class="location-suggestion-item"
+            [class.selected]="selectedSuggestionIndex === i"
+            (click)="selectLocationSuggestion(suggestion, i)"
+            (mouseenter)="selectedSuggestionIndex = i">
+
+            <span class="suggestion-icon">{{ getLocationIcon(suggestion) }}</span>
+            <div class="suggestion-content">
+              <div class="suggestion-name">{{ extractLocationName(suggestion) }}</div>
+              <div class="suggestion-address">{{ extractLocationAddress(suggestion) }}</div>
+            </div>
+            <span class="suggestion-distance" *ngIf="userLocation">
+                      {{ calculateDistance(suggestion) }}
+                  </span>
+          </div>
+
+          <!-- Sin resultados -->
+          <div class="location-suggestion-item no-results" *ngIf="!isSearchingLocation && locationSuggestions.length === 0 && locationSearchTerm && locationSearchTerm.length > 2">
+            <span class="suggestion-icon">🔍</span>
+            <div class="suggestion-content">
+              <div class="suggestion-name">Sin resultados</div>
+              <div class="suggestion-address">No se encontraron ubicaciones para "{{ locationSearchTerm }}"</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- Ubicación actual -->
+      <div class="current-location-info" *ngIf="currentLocationName">
+        <span class="location-pin">📍</span>
+        <span class="location-text">{{ currentLocationName }}</span>
+        <button class="clear-location-btn" (click)="clearCurrentLocation()" aria-label="Limpiar ubicación">
+          ✕
+        </button>
       </div>
     </div>
 

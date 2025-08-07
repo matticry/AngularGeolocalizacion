@@ -1,5 +1,6 @@
 @import '../node_modules/leaflet/dist/leaflet.css';
 
+
 /* Fix para iconos de Leaflet en Angular */
 .leaflet-marker-icon {
   margin-left: -12px !important;
