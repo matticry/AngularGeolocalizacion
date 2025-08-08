@@ -145,7 +145,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   }
 
   ngAfterViewInit(): void {
-    setTimeout(() => this.initializeMap(), 200);
+    setTimeout(() => this.initializeMap(), 100);
   }
 
   ngOnDestroy(): void {
@@ -244,7 +244,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
         this.showLocationSuggestions = false;
         this.selectedSuggestionIndex = -1;
       }
-    }, 150);
+    }, 100);
   }
 
   clearLocationSearch(): void {
@@ -363,7 +363,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
 
     setTimeout(() => {
       this.mapStatus = 'Mapa listo';
-    }, 3000);
+    }, 1000);
   }
 
   /* --------------------------
@@ -500,7 +500,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       this.searchLocationSuggestions(query).then(r => {
         this.cdr.detectChanges();
       });
-    }, 300);
+    }, 100);
   }
 
 
@@ -771,13 +771,13 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
           this.map.removeLayer(marker);
           this.mapStatus = 'Mapa listo';
         }
-      }, 15000);
+      }, 1000);
     }, err => {
       this.mapStatus = 'Error de ubicación';
       alert('Error obteniendo ubicación: ' + err.message);
       setTimeout(() => {
         this.mapStatus = 'Mapa listo';
-      }, 3000);
+      }, 1000);
     });
   }
 
