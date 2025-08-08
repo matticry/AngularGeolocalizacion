@@ -1,19 +1,34 @@
 // src/app/features/reportes/geolocalizacion/geolocalizacion-reporte.component.ts
-
 import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import * as L from 'leaflet';
-
 import { VendedorService } from '../services';
 import { Vendedor, PaginacionInfo } from '../models';
 import { AuthService } from '../../auth/services/auth.service';
+import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { Dialog } from 'primeng/dialog'; // 🆕 NUEVO
+import { InputText } from 'primeng/inputtext';
+import { InputNumber } from 'primeng/inputnumber'; // 🆕 NUEVO para coordenadas
+import { ProgressSpinner } from 'primeng/progressspinner'; // 🆕 NUEVO
+import {MessageService, ConfirmationService, PrimeTemplate} from 'primeng/api';
 
 @Component({
   selector: 'app-geolocalizacion-reporte',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule,
+    FormsModule,
+    Button,
+    Card,
+    Dialog,
+    InputText,
+    InputNumber,
+    ProgressSpinner,
+   PrimeTemplate
+  ],
+  providers: [MessageService, ConfirmationService],
   templateUrl: './geolocalizacion-reporte.component.html',
   styleUrls: ['./geolocalizacion-reporte.component.css']
 })
@@ -22,39 +37,39 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
 
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
-
-  // Signals para estado reactivo
   loading = signal(false);
   error = signal<string | null>(null);
+
+
+
+  showLocationUpdateDialog = false;
+  selectedVendedorForUpdate: Vendedor | null = null;
+  isUpdatingLocation = false;
+
+
+  locationUpdateForm = {
+    latitud: 0,
+    longitud: 0,
+    direccion: '',
+    precision: 0,
+
+  };
 
   // Mapa
   map: L.Map | null = null;
   mapLoading = true;
   mapStatus = 'Inicializando mapa...';
 
-  // Buscador de ubicaciones mejorado
-  locationSearchInput: HTMLInputElement | null = null;
   locationSuggestions: any[] = [];
   isSearchingLocation = false;
   selectedSuggestionIndex = -1;
   searchTimeout: any = null;
-
-  // 🆕 NUEVAS PROPIEDADES para búsqueda de ubicaciones en header
   locationSearchTerm = '';
   showLocationSuggestions = false;
   currentLocationName = '';
   userLocation: { lat: number, lng: number } | null = null;
   private searchLocationMarker: L.Marker | null = null;
 
-  // Búsquedas rápidas predefinidas
-  quickSearches = [
-    { name: 'Quito Centro', icon: '🏛️', query: 'Centro Histórico Quito' },
-    { name: 'La Mariscal', icon: '🍺', query: 'La Mariscal Quito' },
-    { name: 'Cumbayá', icon: '🏘️', query: 'Cumbayá Ecuador' },
-    { name: 'El Valle', icon: '🏙️', query: 'Valle de los Chillos' },
-    { name: 'Calderón', icon: '🏘️', query: 'Calderón Quito' },
-    { name: 'Guayaquil', icon: '🌊', query: 'Guayaquil Ecuador' }
-  ];
 
   // Vendedores
   vendedores: Vendedor[] = [];
@@ -69,10 +84,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   // Paginación
   paginacion: PaginacionInfo | null = null;
   tamanioPagina = 5;
-
-  // Coordenadas iniciales (Quito, Ecuador)
-  initialCenter: [number, number] = [-0.186879, -78.503194];
-  initialZoom = 12;
 
   estadisticas = {
     total: 0,
@@ -90,7 +101,9 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   constructor(
     private cdr: ChangeDetectorRef,
     private vendedorService: VendedorService,
-    public authService: AuthService
+    public authService: AuthService,
+    private messageService: MessageService,
+
   ) {
     this.setupSearchDebounce();
   }
@@ -145,12 +158,9 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     }
     this.markers.clear();
 
-    // Limpiar timeout de búsqueda
     if (this.searchTimeout) {
       clearTimeout(this.searchTimeout);
     }
-
-    // Limpiar función global
     delete (window as any).updateVendedorLocation;
   }
 
@@ -159,7 +169,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
      -------------------------- */
 
   private subscribeToVendedorService(): void {
-    // Suscribirse a vendedores
     this.vendedorService.vendedores$
       .pipe(takeUntil(this.destroy$))
       .subscribe(vendedores => {
@@ -169,19 +178,13 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
         this.renderVendedoresEnMapa();
         this.cdr.detectChanges();
       });
-
-    // Suscribirse a paginación
     this.vendedorService.paginacion$
       .pipe(takeUntil(this.destroy$))
       .subscribe(paginacion => {
         this.paginacion = paginacion;
         this.cdr.detectChanges();
       });
-
-    // Suscribirse a estado de loading
     this.loading.set(this.vendedorService.loading);
-
-    // Suscribirse a errores
     if (this.vendedorService.error) {
       this.error.set(this.vendedorService.error);
     }
@@ -193,7 +196,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       this.error.set('No hay empresa seleccionada');
       return;
     }
-
     console.log('Cargando vendedores para empresa:', user.empresaSeleccionada.nomempresa);
 
     this.vendedorService.getVendedoresByEmpresa(pagina, this.tamanioPagina, termino, estado)
@@ -210,7 +212,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       });
   }
 
-  // Estadísticas simplificadas (sin clientes)
+
   private updateEstadisticas(): void {
     this.estadisticas = {
       total: this.vendedores.length,
@@ -236,7 +238,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
   }
 
   onLocationSearchBlur(event: FocusEvent): void {
-    // Delay para permitir clicks en sugerencias
     setTimeout(() => {
       const relatedTarget = event.relatedTarget as HTMLElement;
       if (!relatedTarget || !relatedTarget.closest('.location-suggestions-dropdown')) {
@@ -244,40 +245,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
         this.selectedSuggestionIndex = -1;
       }
     }, 150);
-  }
-
-  onLocationSearchKeydown(event: KeyboardEvent): void {
-    if (!this.showLocationSuggestions) return;
-
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        this.selectedSuggestionIndex = Math.min(
-          this.selectedSuggestionIndex + 1,
-          this.locationSuggestions.length - 1
-        );
-        break;
-
-      case 'ArrowUp':
-        event.preventDefault();
-        this.selectedSuggestionIndex = Math.max(this.selectedSuggestionIndex - 1, -1);
-        break;
-
-      case 'Enter':
-        event.preventDefault();
-        if (this.selectedSuggestionIndex >= 0 && this.selectedSuggestionIndex < this.locationSuggestions.length) {
-          this.selectLocationSuggestion(this.locationSuggestions[this.selectedSuggestionIndex], this.selectedSuggestionIndex);
-        } else if (this.locationSearchTerm.trim()) {
-          this.performLocationSearchFromInput();
-        }
-        break;
-
-      case 'Escape':
-        this.showLocationSuggestions = false;
-        this.selectedSuggestionIndex = -1;
-        (event.target as HTMLInputElement).blur();
-        break;
-    }
   }
 
   clearLocationSearch(): void {
@@ -297,56 +264,21 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     }
   }
 
-  performQuickSearch(quickSearch: any): void {
-    this.locationSearchTerm = quickSearch.name;
-    this.searchAndNavigateToLocation(quickSearch.query);
-  }
-
   clearCurrentLocation(): void {
     this.currentLocationName = '';
     this.userLocation = null;
-
-    // Limpiar marcador de búsqueda
     if (this.searchLocationMarker && this.map) {
       this.map.removeLayer(this.searchLocationMarker);
       this.searchLocationMarker = null;
     }
-
-    // Volver a vista general del mapa
     if (this.map && this.vendedoresFiltrados.length > 0) {
       const group = new L.FeatureGroup(Array.from(this.markers.values()));
       this.map.fitBounds(group.getBounds().pad(0.1));
     } else if (this.map) {
-      this.map.setView(this.initialCenter, this.initialZoom);
+      this.obtenerMiUbicacion();
     }
   }
 
-  // Método para calcular distancia (si el usuario tiene ubicación)
-  calculateDistance(suggestion: any): string {
-    if (!this.userLocation) return '';
-
-    const lat1 = this.userLocation.lat;
-    const lng1 = this.userLocation.lng;
-    const lat2 = parseFloat(suggestion.lat);
-    const lng2 = parseFloat(suggestion.lon);
-
-    const R = 6371; // Radio de la Tierra en km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)}m`;
-    } else {
-      return `${distance.toFixed(1)}km`;
-    }
-  }
-
-  // Nuevo método para búsqueda directa
   private searchAndNavigateToLocation(query: string): void {
     this.isSearchingLocation = true;
     this.cdr.detectChanges();
@@ -380,7 +312,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       });
   }
 
-  // Crear icono para marcador de búsqueda
   private createSearchLocationMarkerIcon(): L.DivIcon {
     return L.divIcon({
       className: 'search-location-marker-icon',
@@ -398,19 +329,15 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     });
   }
 
-  // Actualizar el método navigateToLocation para incluir marcador persistente
   private navigateToLocationWithMarker(lat: number, lng: number, name: string, fullAddress: string): void {
     if (!this.map) return;
-
     // Centrar mapa
     this.map.setView([lat, lng], 15, { animate: true });
 
-    // Remover marcador de búsqueda anterior si existe
     if (this.searchLocationMarker) {
       this.map.removeLayer(this.searchLocationMarker);
     }
 
-    // Crear marcador persistente para la ubicación buscada
     this.searchLocationMarker = L.marker([lat, lng], {
       icon: this.createSearchLocationMarkerIcon()
     }).addTo(this.map);
@@ -445,7 +372,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
 
   private setupSearchDebounce(): void {
     this.searchSubject.pipe(
-      debounceTime(300), // Reducido de 500ms para más responsividad
+      debounceTime(300),
       distinctUntilChanged(),
       takeUntil(this.destroy$)
     ).subscribe(termino => {
@@ -460,7 +387,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
 
   private performSearch(termino: string): void {
     if (termino) {
-      // Filtrar en el lado del cliente para mayor velocidad
       this.vendedoresFiltrados = this.vendedores.filter(v => {
         const searchText = [
           v.nombre,
@@ -497,9 +423,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     }
   }
 
-  /* --------------------------
-     MÉTODOS DE PAGINACIÓN
-     -------------------------- */
+  /* MÉTODOS DE PAGINACIÓN */
 
   onPaginaAnterior(): void {
     if (this.paginacion?.tienePaginaAnterior) {
@@ -513,11 +437,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     }
   }
 
-  onPaginaEspecifica(pagina: number): void {
-    if (this.paginacion && pagina >= 1 && pagina <= this.paginacion.totalPaginas) {
-      this.loadVendedores(pagina);
-    }
-  }
 
   /* --------------------------
      MÉTODOS DEL MAPA
@@ -536,7 +455,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       this.map = L.map(containerId, {
         center: [-0.186879, -78.503194],
         zoom: 13,
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: false
       });
 
@@ -548,9 +467,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
         zoomOffset: -1,
       }).addTo(this.map);
 
-      // Controles
-      L.control.zoom({ position: 'bottomright' }).addTo(this.map);
-      L.control.scale({ position: 'bottomleft', imperial: false }).addTo(this.map);
       this.renderVendedoresEnMapa();
 
       this.mapStatus = 'Mapa listo';
@@ -565,9 +481,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     }
   }
 
-  // Actualizar el método handleLocationSearchInput para header
   private handleLocationSearchInput(value: string): void {
-    // Limpiar timeout anterior
     if (this.searchTimeout) {
       clearTimeout(this.searchTimeout);
     }
@@ -582,55 +496,20 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
 
     this.showLocationSuggestions = true;
 
-    // Debounce de 300ms
     this.searchTimeout = setTimeout(() => {
-      this.searchLocationSuggestions(query);
+      this.searchLocationSuggestions(query).then(r => {
+        this.cdr.detectChanges();
+      });
     }, 300);
   }
 
-  // Manejar navegación con teclado en sugerencias
-  private handleLocationSearchKeydown(e: KeyboardEvent, suggestionsContainer: HTMLDivElement): void {
-    const suggestions = suggestionsContainer.querySelectorAll('.location-suggestion');
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        this.selectedSuggestionIndex = Math.min(this.selectedSuggestionIndex + 1, suggestions.length - 1);
-        this.updateSuggestionSelection(suggestions);
-        break;
-
-      case 'ArrowUp':
-        e.preventDefault();
-        this.selectedSuggestionIndex = Math.max(this.selectedSuggestionIndex - 1, -1);
-        this.updateSuggestionSelection(suggestions);
-        break;
-
-      case 'Enter':
-        e.preventDefault();
-        if (this.selectedSuggestionIndex >= 0 && this.selectedSuggestionIndex < this.locationSuggestions.length) {
-          this.selectLocationSuggestion(this.locationSuggestions[this.selectedSuggestionIndex]);
-        } else if (this.locationSearchInput?.value.trim()) {
-          this.performLocationSearch(this.locationSearchInput.value.trim());
-        }
-        suggestionsContainer.style.display = 'none';
-        break;
-
-      case 'Escape':
-        suggestionsContainer.style.display = 'none';
-        this.selectedSuggestionIndex = -1;
-        this.locationSearchInput?.blur();
-        break;
-    }
-  }
-
-  // Buscar sugerencias de ubicaciones
   private async searchLocationSuggestions(query: string): Promise<void> {
     if (!query || query.length < 2) return;
 
     this.isSearchingLocation = true;
 
     try {
-      // Agregar "Ecuador" si no está incluido para mejor precisión
       const searchQuery = query.toLowerCase().includes('ecuador') ? query : `${query}, Ecuador`;
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=8&countrycodes=ec&addressdetails=1`;
 
@@ -647,56 +526,10 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       this.locationSuggestions = [];
     } finally {
       this.isSearchingLocation = false;
-      this.cdr.detectChanges(); // 🆕 AGREGAR DETECCIÓN DE CAMBIOS
+      this.cdr.detectChanges();
     }
   }
 
-  // Mostrar estado de búsqueda
-  private showSearchingState(): void {
-    const suggestionsContainer = document.querySelector('#location-suggestions') as HTMLDivElement;
-    if (!suggestionsContainer) return;
-
-    suggestionsContainer.innerHTML = `
-      <div class="location-search-loading">
-        <div class="spinner"></div>
-        <span>Buscando ubicaciones...</span>
-      </div>
-    `;
-    suggestionsContainer.style.display = 'block';
-  }
-
-
-  // Mostrar mensaje de no resultados
-  private showNoResultsMessage(): void {
-    const suggestionsContainer = document.querySelector('#location-suggestions') as HTMLDivElement;
-    if (!suggestionsContainer) return;
-
-    suggestionsContainer.innerHTML = `
-      <div class="location-search-empty">
-        <span class="empty-icon">🔍</span>
-        <div>No se encontraron ubicaciones</div>
-      </div>
-    `;
-    suggestionsContainer.style.display = 'block';
-  }
-
-  // Ocultar sugerencias
-  private hideSuggestions(): void {
-    const suggestionsContainer = document.querySelector('#location-suggestions') as HTMLDivElement;
-    if (suggestionsContainer) {
-      suggestionsContainer.style.display = 'none';
-    }
-    this.selectedSuggestionIndex = -1;
-  }
-
-  // Actualizar selección visual de sugerencias
-  private updateSuggestionSelection(suggestions: NodeListOf<Element>): void {
-    suggestions.forEach((suggestion, index) => {
-      suggestion.classList.toggle('active', index === this.selectedSuggestionIndex);
-    });
-  }
-
-  // Seleccionar una sugerencia (versión mejorada)
   selectLocationSuggestion(suggestion: any, index?: number): void {
     if (!suggestion) return;
 
@@ -717,43 +550,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     this.cdr.detectChanges();
   }
 
-  // Realizar búsqueda directa (cuando se presiona botón o Enter)
-  private performLocationSearch(query: string): void {
-    if (this.locationSuggestions.length > 0) {
-      // Si hay sugerencias, usar la primera
-      this.selectLocationSuggestion(this.locationSuggestions[0]);
-    } else {
-      // Buscar directamente
-      this.searchLocation(query);
-    }
-  }
 
-  // Navegar a una ubicación específica
-  private navigateToLocation(lat: number, lng: number, name: string, fullAddress: string): void {
-    if (!this.map) return;
-
-    // Centrar mapa
-    this.map.setView([lat, lng], 16, { animate: true });
-
-    // Crear marcador temporal
-    const searchMarker = L.marker([lat, lng]).addTo(this.map)
-      .bindPopup(`
-        <div style="text-align: center; max-width: 200px;">
-          <strong>📍 ${name}</strong><br>
-          <small style="color: #6b7280; line-height: 1.4;">${fullAddress}</small>
-        </div>
-      `)
-      .openPopup();
-
-    // Remover marcador después de 15 segundos
-    setTimeout(() => {
-      if (this.map && searchMarker) {
-        this.map.removeLayer(searchMarker);
-      }
-    }, 15000);
-  }
-
-  // Extraer nombre de la ubicación
   extractLocationName(suggestion: any): string {
     if (suggestion.address) {
       return suggestion.address.city ||
@@ -768,7 +565,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     return suggestion.name || suggestion.display_name?.split(',')[0] || 'Ubicación';
   }
 
-  // Extraer dirección de la ubicación
   extractLocationAddress(suggestion: any): string {
     if (suggestion.address) {
       const parts = [];
@@ -783,50 +579,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     return suggestion.display_name || 'Sin dirección disponible';
   }
 
-  // Obtener icono según tipo de ubicación
-  getLocationIcon(suggestion: any): string {
-    const type = suggestion.type || suggestion.category || '';
-    const place = suggestion.place_type || '';
-
-    if (type.includes('city') || place.includes('city')) return '🏙️';
-    if (type.includes('town') || place.includes('town')) return '🏘️';
-    if (type.includes('village') || place.includes('village')) return '🏡';
-    if (type.includes('road') || type.includes('street')) return '🛣️';
-    if (type.includes('amenity')) return '🏢';
-    if (type.includes('shop') || type.includes('commercial')) return '🏪';
-    if (type.includes('school') || type.includes('university')) return '🏫';
-    if (type.includes('hospital') || type.includes('clinic')) return '🏥';
-    if (type.includes('park') || type.includes('garden')) return '🏞️';
-
-    return '📍';
-  }
-
-  // Búsqueda simple de ubicación (compatibilidad)
-  private searchLocation(query: string): void {
-    if (!this.map) return;
-
-    const searchQuery = query.includes('Ecuador') ? query : `${query}, Ecuador`;
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&countrycodes=ec`;
-
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        if (data && data.length > 0) {
-          const result = data[0];
-          const lat = parseFloat(result.lat);
-          const lng = parseFloat(result.lon);
-          const name = this.extractLocationName(result);
-
-          this.navigateToLocation(lat, lng, name, result.display_name);
-        } else {
-          alert(`No se encontraron resultados para: ${query}`);
-        }
-      })
-      .catch(error => {
-        console.error('Error en búsqueda:', error);
-        alert('Error al buscar la ubicación');
-      });
-  }
 
   private createAdvancedMarkerIcon(vendedor: Vendedor, isSelected = false): L.DivIcon {
     const estado = this.estadoColors[vendedor.estado || 'default'];
@@ -874,8 +626,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
 
   private renderVendedoresEnMapa(): void {
     if (!this.map) return;
-
-    // Limpiar marcadores previos
     this.markers.forEach(m => {
       if (this.map) this.map.removeLayer(m);
     });
@@ -885,9 +635,7 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
       const isSelected = this.selectedVendedorId === v.id;
       const icon = this.createAdvancedMarkerIcon(v, isSelected);
       const marker = L.marker([v.lat, v.lng], { icon }).addTo(this.map!);
-
       const estado = this.estadoColors[v.estado || 'default'];
-      // Popup simplificado (sin estadísticas de clientes)
       const popupHtml = `
         <div class="advanced-popup">
           <div class="popup-header" style="border-color: ${estado.color}">
@@ -984,20 +732,9 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     if (marker) marker.openPopup();
   }
 
-  /* --------------------------
-     MÉTODOS PÚBLICOS
-     -------------------------- */
 
   centrarEnVendedorClick(v: Vendedor): void {
     this.seleccionarYCentraVendedor(v.id);
-  }
-
-  mostrarTodas(): void {
-    if (!this.map || this.markers.size === 0) return;
-    this.selectedVendedorId = null;
-    const group = new L.FeatureGroup(Array.from(this.markers.values()));
-    this.map.fitBounds(group.getBounds().pad(0.1));
-    this.renderVendedoresEnMapa();
   }
 
   obtenerMiUbicacion(): void {
@@ -1044,7 +781,6 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     });
   }
 
-  // Métodos auxiliares para el template
   trackByVendedorId(index: number, vendedor: Vendedor): string {
     return vendedor.id;
   }
@@ -1062,88 +798,50 @@ export class GeolocalizacionReporteComponent implements OnInit, AfterViewInit, O
     this.vendedorService.refresh();
   }
 
-  // Actualizar ubicación del vendedor
   updateVendedorLocation(vendedorId: string): void {
     const vendedor = this.vendedores.find(v => v.id === vendedorId);
     if (!vendedor) {
-      alert('Vendedor no encontrado');
+      this.showErrorMessage('Vendedor no encontrado');
       return;
     }
 
-    if (!navigator.geolocation) {
-      alert('Geolocalización no disponible en tu dispositivo');
-      return;
-    }
-
-    const confirmed = confirm(`¿Actualizar la ubicación de ${vendedor.nombre}?`);
-    if (!confirmed) return;
-
-    this.mapStatus = 'Obteniendo ubicación actual...';
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const nuevaLat = position.coords.latitude;
-        const nuevaLng = position.coords.longitude;
-
-        console.log('🎯 Nueva ubicación obtenida:', {
-          vendedorId: vendedor.id,
-          vendedorNombre: vendedor.nombre,
-          coordenadas: {
-            lat: nuevaLat,
-            lng: nuevaLng,
-            precision: position.coords.accuracy
-          }
-        });
-
-        // TODO: Llamada al API para actualizar en backend
-        this.sendLocationUpdate(vendedor.id, nuevaLat, nuevaLng, position.coords.accuracy);
-
-        // Actualizar localmente
-        vendedor.lat = nuevaLat;
-        vendedor.lng = nuevaLng;
-
-        // Re-renderizar mapa
-        this.renderVendedoresEnMapa();
-
-        // Centrar en nueva ubicación
-        this.map?.setView([nuevaLat, nuevaLng], 17, { animate: true });
-
-        this.mapStatus = 'Ubicación actualizada exitosamente';
-
-        setTimeout(() => {
-          this.mapStatus = 'Mapa listo';
-        }, 3000);
-      },
-      (error) => {
-        console.error('Error obteniendo ubicación:', error);
-        this.mapStatus = 'Error obteniendo ubicación';
-        alert(`Error: ${error.message}`);
-
-        setTimeout(() => {
-          this.mapStatus = 'Mapa listo';
-        }, 3000);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
-  }
-
-  // Enviar actualización al backend
-  private sendLocationUpdate(vendedorId: string, lat: number, lng: number, precision: number): void {
-    // TODO: Implementar llamada al API
-    const updateData = {
-      vendedorId: vendedorId,
-      coordenadas: {
-        latitud: lat,
-        longitud: lng,
-        precision: precision,
-        fechaActualizacion: new Date().toISOString()
-      }
+    this.selectedVendedorForUpdate = vendedor;
+    this.locationUpdateForm = {
+      latitud: vendedor.lat || 0,
+      longitud: vendedor.lng || 0,
+      direccion: vendedor.direccion || '',
+      precision: 0,
     };
 
-    console.log('📤 Datos para enviar al API:', updateData);
+    this.showLocationUpdateDialog = true;
   }
+
+  private showErrorMessage(message: string): void {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: message,
+      life: 5000
+    });
+  }
+
+
+  private showInfoMessage(message: string): void {
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Información',
+      detail: message,
+      life: 3000
+    });
+  }
+
+  private showSuccessMessage(message: string): void {
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: message,
+      life: 3000
+    });
+  }
+
 }

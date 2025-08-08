@@ -1225,7 +1225,6 @@
   margin: 12px 0;
   position: relative;
   width: 100%;
-  max-width: 450px;
 }
 
 .location-search-wrapper {
@@ -1570,4 +1569,118 @@
 
 .location-suggestions-dropdown::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+
+
+
+
+
+/* Estilos específicos para el modal de ubicación */
+.location-update-dialog .p-dialog-header {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-bottom: 1px solid #bae6fd;
+}
+
+.location-update-content {
+  position: relative;
+  min-height: 400px;
+}
+
+.current-info-card .p-card-header {
+  padding: 12px 16px;
+}
+
+.card-header-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.quick-actions .p-button {
+  height: 45px;
+}
+
+.coordinates-section {
+  background: #fafafa;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+}
+
+.precision-info {
+  margin-top: 12px;
+}
+
+.coordinates-preview .p-card {
+  border: 1px solid #d1d5db;
+  box-shadow: none;
+}
+
+.coordinates-preview .p-card-header {
+  padding: 12px 16px;
+  background: #f8fafc;
+}
+
+.preview-content {
+  padding: 8px 0;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .location-update-dialog {
+    width: 95vw !important;
+    max-width: none !important;
+  }
+
+  .coordinates-section {
+    padding: 16px;
+  }
+
+  .quick-actions .p-button {
+    height: 40px;
+    font-size: 14px;
+  }
+}
+
+/* Animaciones */
+.location-update-content {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estados de input */
+.p-inputnumber.p-component.p-inputwrapper-filled .p-inputtext {
+  background: #f0f9ff;
+  border-color: #0ea5e9;
+}
+
+.p-inputtext:focus {
+  border-color: #0ea5e9 !important;
+  box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.2) !important;
 }

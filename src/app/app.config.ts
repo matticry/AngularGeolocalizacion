@@ -9,6 +9,9 @@ import {errorInterceptor} from './core/interceptors/error.interceptor';
 
 // Material Modules
 import {MatSnackBarModule} from '@angular/material/snack-bar';
+import {providePrimeNG} from 'primeng/config';
+import Lara from '@primeuix/themes/lara';
+
 
 const appConfig: ApplicationConfig = {
   providers: [
@@ -17,7 +20,16 @@ const appConfig: ApplicationConfig = {
       withInterceptors([authInterceptor, errorInterceptor])
     ),
     provideAnimationsAsync(),
-    importProvidersFrom(MatSnackBarModule)
+    importProvidersFrom(MatSnackBarModule),
+    providePrimeNG({
+      theme: {
+        preset: Lara,
+        options: {
+          // 🆕 Configuración específica para tema claro
+          darkModeSelector: false, // Deshabilitar modo oscuro
+        }
+      }
+    }),
   ]
 };
 

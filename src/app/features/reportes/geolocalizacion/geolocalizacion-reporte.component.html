@@ -142,24 +142,6 @@
     <div class="pagination-info" *ngIf="paginacion && !loading()">
       <small>{{ getPaginaInicio() }} - {{ getPaginaFin() }} de {{ paginacion.totalRegistros }}</small>
     </div>
-
-
-    <!-- Acciones compactas -->
-    <div class="left-footer" *ngIf="!loading() && !error()">
-      <button
-        class="btn primary"
-        (click)="mostrarTodas()"
-        [disabled]="vendedoresFiltrados.length === 0"
-        aria-label="Ver todos">
-        🌍 Ver Todos
-      </button>
-      <button
-        class="btn ghost"
-        (click)="obtenerMiUbicacion()"
-        aria-label="Mi ubicación">
-        📍 Mi Ubicación
-      </button>
-    </div>
   </div>
 
   <!-- Panel Derecho - Mapa -->
@@ -173,6 +155,13 @@
           <div class="empresa-info" *ngIf="empresaSeleccionada">
             <small>📊 {{ empresaNombre }}</small>
           </div>
+          <button
+            class="btn ghost"
+            (click)="obtenerMiUbicacion()"
+            aria-label="Mi ubicación">
+            📍 Mi Ubicación
+          </button>
+
         </div>
       </div>
 
@@ -181,9 +170,6 @@
       <div class="header-mapa">
         <div class="status">
           <span [ngClass]="{'loading-shimmer': mapLoading}">{{ mapStatus }}</span>
-          <span class="map-counter" *ngIf="!mapLoading && vendedoresFiltrados.length > 0">
-            {{ vendedoresFiltrados.length }} vendedores
-          </span>
         </div>
       </div>
     </div>
@@ -194,13 +180,11 @@
         <div class="location-search-input-group">
           <span class="search-icon">🔍</span>
           <input
-            #locationSearchInput
             type="text"
             class="location-search-input"
             placeholder="Buscar ubicación en Ecuador..."
             [(ngModel)]="locationSearchTerm"
             (input)="onLocationSearchInput($event)"
-            (keydown)="onLocationSearchKeydown($event)"
             (focus)="onLocationSearchFocus()"
             (blur)="onLocationSearchBlur($event)"
             autocomplete="off"
@@ -229,8 +213,7 @@
         <!-- Sugerencias dropdown -->
         <div
           class="location-suggestions-dropdown"
-          [class.show]="showLocationSuggestions && (locationSuggestions.length > 0 || isSearchingLocation)"
-          #suggestionsContainer>
+          [class.show]="showLocationSuggestions && (locationSuggestions.length > 0 || isSearchingLocation)">
 
           <!-- Estado de carga -->
           <div class="location-suggestion-item loading" *ngIf="isSearchingLocation">
@@ -251,14 +234,10 @@
             (click)="selectLocationSuggestion(suggestion, i)"
             (mouseenter)="selectedSuggestionIndex = i">
 
-            <span class="suggestion-icon">{{ getLocationIcon(suggestion) }}</span>
             <div class="suggestion-content">
               <div class="suggestion-name">{{ extractLocationName(suggestion) }}</div>
               <div class="suggestion-address">{{ extractLocationAddress(suggestion) }}</div>
             </div>
-            <span class="suggestion-distance" *ngIf="userLocation">
-                      {{ calculateDistance(suggestion) }}
-                  </span>
           </div>
 
           <!-- Sin resultados -->
@@ -333,4 +312,161 @@
       </div>
     </div>
   </div>
+
+  <p-dialog
+    header="Actualizar Ubicación de Vendedor"
+    [(visible)]="showLocationUpdateDialog"
+    [modal]="true"
+    [style]="{ width: '500px', minHeight: '600px' }"
+    [maximizable]="false"
+    [closable]="true"
+    styleClass="location-update-dialog">
+
+    <!-- Header del modal con información del vendedor -->
+    <ng-template pTemplate="header">
+      <div class="flex align-items-center gap-3">
+        <i class="pi pi-map-marker text-2xl text-primary"></i>
+        <div>
+          <h3 class="m-0 text-primary">Actualizar Ubicación</h3>
+          <p class="m-0 text-sm text-color-secondary" *ngIf="selectedVendedorForUpdate">
+            {{ selectedVendedorForUpdate.nombre }} {{ selectedVendedorForUpdate.apellidos }}
+          </p>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Contenido del modal -->
+    <div class="location-update-content" *ngIf="selectedVendedorForUpdate">
+
+      <!-- Información actual del vendedor -->
+      <div class="current-info-card mb-4">
+        <p-card>
+          <ng-template pTemplate="header">
+            <div class="card-header-custom">
+              <i class="pi pi-info-circle text-blue-500"></i>
+              <span class="font-semibold text-blue-700">Información Actual</span>
+            </div>
+          </ng-template>
+
+          <div class="grid">
+            <div class="col-12 md:col-6">
+              <small class="text-color-secondary">Código:</small>
+              <p class="mt-1 font-medium">{{ selectedVendedorForUpdate.codigo }}</p>
+            </div>
+            <div class="col-12 md:col-6">
+              <small class="text-color-secondary">Estado:</small>
+              <p class="mt-1 font-medium">
+                <i [class]="'pi ' + (selectedVendedorForUpdate.estado === 'activo' ? 'pi-check-circle text-green-500' : 'pi-pause-circle text-red-500')"></i>
+                {{ selectedVendedorForUpdate.estado || 'N/A' }}
+              </p>
+            </div>
+            <div class="col-12">
+              <small class="text-color-secondary">Dirección actual:</small>
+              <p class="mt-1 font-medium">{{ selectedVendedorForUpdate.direccion || 'Sin dirección registrada' }}</p>
+            </div>
+          </div>
+        </p-card>
+      </div>
+
+
+
+      <!-- Coordenadas -->
+      <div class="coordinates-section">
+        <h4 class="text-lg font-semibold mb-3 flex align-items-center gap-2">
+          <i class="pi pi-globe text-primary"></i>
+          Coordenadas
+        </h4>
+
+        <div class="grid">
+          <!-- Latitud -->
+          <div class="col-12 md:col-6">
+            <div class="field">
+              <label for="latitud" class="block text-sm font-medium mb-2">
+                <i class="pi pi-arrow-up-down mr-1"></i>Latitud
+              </label>
+              <p-inputNumber
+                id="latitud"
+                [(ngModel)]="locationUpdateForm.latitud"
+                [minFractionDigits]="6"
+                [maxFractionDigits]="8"
+                [min]="-90"
+                [max]="90"
+                [disabled]="isUpdatingLocation"
+                placeholder="Ej: -0.186879"
+                styleClass="w-full"
+                [useGrouping]="false">
+              </p-inputNumber>
+              <small class="text-color-secondary">Rango: -90 a 90</small>
+            </div>
+          </div>
+
+          <!-- Longitud -->
+          <div class="col-12 md:col-6">
+            <div class="field">
+              <label for="longitud" class="block text-sm font-medium mb-2">
+                <i class="pi pi-arrow-left-right mr-1"></i>Longitud
+              </label>
+              <p-inputNumber
+                id="longitud"
+                [(ngModel)]="locationUpdateForm.longitud"
+                [minFractionDigits]="6"
+                [maxFractionDigits]="8"
+                [min]="-180"
+                [max]="180"
+                [disabled]="isUpdatingLocation"
+                placeholder="Ej: -78.503194"
+                styleClass="w-full"
+                [useGrouping]="false">
+              </p-inputNumber>
+              <small class="text-color-secondary">Rango: -180 a 180</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información de precisión -->
+        <div class="precision-info mt-3" *ngIf="locationUpdateForm.precision > 0">
+          <div class="bg-green-50 border-left-3 border-green-500 p-3">
+            <div class="flex align-items-center gap-2">
+              <i class="pi pi-check-circle text-green-600"></i>
+              <span class="text-green-700 font-medium">
+              Precisión GPS: ±{{ locationUpdateForm.precision | number:'1.0-0' }} metros
+            </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dirección -->
+      <div class="field mt-4">
+        <label for="direccion" class="block text-sm font-medium mb-2">
+          <i class="pi pi-home mr-2"></i>Dirección (Opcional)
+        </label>
+        <input
+          pInputText
+          id="direccion"
+          [(ngModel)]="locationUpdateForm.direccion"
+          placeholder="Ingresa la dirección completa"
+          [disabled]="isUpdatingLocation"
+          class="w-full" />
+      </div>
+
+      <div class="loading-overlay" *ngIf="isUpdatingLocation">
+        <div class="flex flex-column align-items-center justify-content-center gap-3">
+          <p-progressSpinner [style]="{ width: '50px', height: '50px' }"></p-progressSpinner>
+          <span class="text-lg font-medium text-primary">Actualizando ubicación...</span>
+        </div>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <div class="flex justify-content-between gap-2">
+        <p-button
+          label="Guardar Ubicación"
+          icon="pi pi-save"
+          [disabled]="isUpdatingLocation || !locationUpdateForm.latitud || !locationUpdateForm.longitud"
+          [loading]="isUpdatingLocation"
+          severity="primary">
+        </p-button>
+      </div>
+    </ng-template>
+  </p-dialog>
 </div>
